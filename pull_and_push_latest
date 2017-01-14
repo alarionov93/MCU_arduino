@@ -2,6 +2,6 @@ scp -r alex-home:/home/alex/Arduino/MDU_firmware/MDU_firmware.ino MDU_firmware.i
 git add *
 echo -n "Enter commit msg and press [ENTER]: "
 read msg
-git commit -a -m $"msg"
+git commit -a -m "$msg"
 git push
 
