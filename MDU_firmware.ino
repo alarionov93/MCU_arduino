@@ -15,9 +15,7 @@ OneWire  ds(11);  // on pin 11 (a 4.7K resistor is necessary)
 int buttonInc = 7;
 int buttonDec = 8;
 int led = 10;
-const int initBrightness = 25;
 const int EEPROMBrightnessAddr = 0;
-int storedBrightness;
 int brightness;
 // ISROddCount needed because IS routine works 2 times:
 //one by pushing button in, other by button pulls back,
@@ -71,14 +69,8 @@ void setup(void) {
 
   // get brightness stored in EEPROM
   brightness = EEPROM.read(EEPROMBrightnessAddr);
-  Serial.println(brightness);
-  if (brightness == 0) {
-    //set initial brightness of lcd
-//    analogWrite(led, initBrightness);
-  }
+  //set initial brightness of lcd
   analogWrite(led, brightness);
-
-  
   // enable interrupts by buttons
   pciSetup(7);
   pciSetup(8);
@@ -149,8 +141,6 @@ void loop(void) {
 //  Serial.print(" ");
   for ( i = 0; i < 9; i++) {           // we need 9 bytes
     data[i] = ds.read();
-//    Serial.print(data[i], HEX);
-//    Serial.print(" ");
   }
 //  Serial.print(" CRC=");
 //  Serial.print(OneWire::crc8(data, 8), HEX);
@@ -201,9 +191,6 @@ void loop(void) {
   } else {
     purePressure = 0.0;
   }
-
-//  Serial.println(sensorValue);
-
   Serial.print("Pressure = ");
   Serial.print(purePressure);
   Serial.print(" psi");
