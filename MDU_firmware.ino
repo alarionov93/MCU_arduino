@@ -57,24 +57,24 @@ ISR (PCINT0_vect) // handle pin change interrupt for D8 to D13 here
     // }
 }
  
-ISR (PCINT2_vect) // handle pin change interrupt for D0 to D7 here
-{
-    // && ISROddCount2 % 2 == 0
-    // brightness +
-    if(!((PIND & (1 << PIND7)) == 1))
-    {
-      if (brightness < 226)
-      {
-        brightness = brightness + 25;
-        analogWrite(led, brightness);
-        EEPROM.update(EEPROMBrightnessAddr, brightness);
-      }
-    }
-    // ISROddCount2++;
-    // if (ISROddCount2 > 2) {
-    //   ISROddCount2 = 1;
-    // }
-}
+// ISR (PCINT2_vect) // handle pin change interrupt for D0 to D7 here
+// {
+//     // && ISROddCount2 % 2 == 0
+//     // brightness +
+//     if(!((PIND & (1 << PIND7)) == 1))
+//     {
+//       if (brightness < 226)
+//       {
+//         brightness = brightness + 25;
+//         analogWrite(led, brightness);
+//         EEPROM.update(EEPROMBrightnessAddr, brightness);
+//       }
+//     }
+//     // ISROddCount2++;
+//     // if (ISROddCount2 > 2) {
+//     //   ISROddCount2 = 1;
+//     // }
+// }
 
 void setup(void) {
   Serial.begin(9600);
@@ -87,10 +87,10 @@ void setup(void) {
   //set initial brightness of lcd
   analogWrite(led, brightness);
   // enable interrupts by buttons
-  pciSetup(buttonInc);
+  // pciSetup(buttonInc);
   pciSetup(buttonDec);
   // EICRA external interrupt enable only by falling edge for PCINT0 and INT1
-  EICRA = 0x0A;
+  // EICRA = 0x0A;
 }
 
 void loop(void) {
