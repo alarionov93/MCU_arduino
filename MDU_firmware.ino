@@ -36,11 +36,20 @@ ISR (PCINT0_vect) // handle pin change interrupt for D8 to D13 here
 {    
     // && ISROddCount1 % 2 == 0
     // brightness -
-    if (brightness > 0) {
-      brightness = brightness - 25;
-      analogWrite(led, brightness);
-      EEPROM.update(EEPROMBrightnessAddr, brightness);
-      // delay does not work in ISR!!
+    if( (PINB & (1 << PINB0)) == 1 )
+    {
+      /* LOW to HIGH pin change */
+    }
+    else
+    {
+      /* HIGH to LOW pin change */
+      if (brightness > 0)
+      {
+        brightness = brightness - 25;
+        analogWrite(led, brightness);
+        EEPROM.update(EEPROMBrightnessAddr, brightness);
+        // delay does not work in ISR!!
+      }
     }
     // ISROddCount1++;
     // if (ISROddCount1 > 2) {
@@ -52,10 +61,14 @@ ISR (PCINT2_vect) // handle pin change interrupt for D0 to D7 here
 {
     // && ISROddCount2 % 2 == 0
     // brightness +
-    if (brightness < 226) {
-      brightness = brightness + 25;
-      analogWrite(led, brightness);
-      EEPROM.update(EEPROMBrightnessAddr, brightness);
+    if(!((PIND & (1 << PIND7)) == 1))
+    {
+      if (brightness < 226)
+      {
+        brightness = brightness + 25;
+        analogWrite(led, brightness);
+        EEPROM.update(EEPROMBrightnessAddr, brightness);
+      }
     }
     // ISROddCount2++;
     // if (ISROddCount2 > 2) {
