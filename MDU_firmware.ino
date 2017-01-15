@@ -61,7 +61,7 @@ ISR (PCINT2_vect) // handle pin change interrupt for D0 to D7 here
 {
     // && ISROddCount2 % 2 == 0
     // brightness +
-    if( (PIND & (1 << PIND7)) == 1 ){}
+    if( (PINC & (1 << PINC7)) == 1 ){}
     else
     {
       if (brightness < 226)
