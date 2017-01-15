@@ -1,14 +1,7 @@
 #include <EEPROM.h>
-
 #include <OneWire.h>
 
 // "Button+" and "Button-" pins are 7,8
-// OneWire DS18S20, DS18B20, DS1822 Temperature Example
-//
-// http://www.pjrc.com/teensy/td_libs_OneWire.html
-//
-// The DallasTemperature library can do all this work for you!
-// http://milesburton.com/Dallas_Temperature_Control_Library
 
 OneWire  ds(11);  // on pin 11 (a 4.7K resistor is necessary)
 
@@ -25,40 +18,49 @@ int ISROddCount2 = 1;
 
 void pciSetup(byte pin)
 {
-    *digitalPinToPCMSK(pin) |= bit (digitalPinToPCMSKbit(pin));  // enable pin
-    PCIFR  |= bit (digitalPinToPCICRbit(pin)); // clear any outstanding interrupt
-    PCICR  |= bit (digitalPinToPCICRbit(pin)); // enable interrupt for the group
+    // PCMSK - enable pin in interrupt mask register
+    *digitalPinToPCMSK(pin) |= bit (digitalPinToPCMSKbit(pin));
+    // clear any outstanding interrupt
+    // PCIFR do not understand if this is necessary
+    // (if questions - m328p datasheet, page 93)
+    PCIFR  |= bit (digitalPinToPCICRbit(pin));
+    // enable interrupt for the group
+    // PCICR should nave 0 and 1 bits set (PCIE0 and PCIE1) to enable interrupts
+    // for pins [0:7] and [8:14] (as defined in m328p datasheet, page 92)
+    PCICR  |= bit (digitalPinToPCICRbit(pin));
 }
  
 // Use one Routine to handle each group
  
 ISR (PCINT0_vect) // handle pin change interrupt for D8 to D13 here
 {    
-     // brightness -
-     if (brightness > 0 && ISROddCount1 % 2 == 0) {
+    // && ISROddCount1 % 2 == 0
+    // brightness -
+    if (brightness > 0) {
       brightness = brightness - 25;
       analogWrite(led, brightness);
       EEPROM.update(EEPROMBrightnessAddr, brightness);
       // delay does not work in ISR!!
     }
-    ISROddCount1++;
-    if (ISROddCount1 > 2) {
-      ISROddCount1 = 1;
-    }
+    // ISROddCount1++;
+    // if (ISROddCount1 > 2) {
+    //   ISROddCount1 = 1;
+    // }
 }
  
 ISR (PCINT2_vect) // handle pin change interrupt for D0 to D7 here
 {
-     // brightness +
-     if (brightness < 226 && ISROddCount2 % 2 == 0) {
+    // && ISROddCount2 % 2 == 0
+    // brightness +
+    if (brightness < 226) {
       brightness = brightness + 25;
       analogWrite(led, brightness);
       EEPROM.update(EEPROMBrightnessAddr, brightness);
     }
-    ISROddCount2++;
-    if (ISROddCount2 > 2) {
-      ISROddCount2 = 1;
-    }
+    // ISROddCount2++;
+    // if (ISROddCount2 > 2) {
+    //   ISROddCount2 = 1;
+    // }
 }
 
 void setup(void) {
@@ -72,8 +74,10 @@ void setup(void) {
   //set initial brightness of lcd
   analogWrite(led, brightness);
   // enable interrupts by buttons
-  pciSetup(7);
-  pciSetup(8);
+  pciSetup(buttonInc);
+  pciSetup(buttonDec);
+  // EICRA external interrupt enable only by falling edge for PCINT0 and INT1
+  EICRA = 0x0A;
 }
 
 void loop(void) {
@@ -84,8 +88,8 @@ void loop(void) {
   byte addr[8];
   float celsius, fahrenheit;
   
-  //1wire control here
-  
+  // 1wire controls here
+
   if ( !ds.search(addr)) {
     Serial.println("No more addresses.");
     Serial.println();
@@ -93,12 +97,6 @@ void loop(void) {
     delay(250);
     return;
   }
-  
-//  Serial.print("ROM =");
-//  for( i = 0; i < 8; i++) {
-//    Serial.write(' ');
-//    Serial.print(addr[i], HEX);
-//  }
 
   if (OneWire::crc8(addr, 7) != addr[7]) {
       Serial.println("CRC is not valid!");
@@ -136,16 +134,9 @@ void loop(void) {
   ds.select(addr);    
   ds.write(0xBE);         // Read Scratchpad
 
-//  Serial.print("  Data = ");
-//  Serial.print(present, HEX);
-//  Serial.print(" ");
   for ( i = 0; i < 9; i++) {           // we need 9 bytes
     data[i] = ds.read();
   }
-//  Serial.print(" CRC=");
-//  Serial.print(OneWire::crc8(data, 8), HEX);
-//  Serial.println();
-
   // Convert the data to actual temperature
   // because the result is a 16 bit signed integer, it should
   // be stored to an "int16_t" type, which is always 16 bits
