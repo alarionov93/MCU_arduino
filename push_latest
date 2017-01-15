@@ -1,0 +1,9 @@
+# push to alex-home machine to program the chip
+scp MDU_firmware.ino alex-home:/home/alex/Arduino/MDU_firmware/MDU_firmware.ino
+# commit amd push to git
+git add *
+echo -n "Enter commit msg and press [ENTER]: "
+read msg
+git commit -a -m "$msg"
+git push
+
