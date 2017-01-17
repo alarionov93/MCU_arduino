@@ -1,10 +1,12 @@
 #include <EEPROM.h>
 #include <OneWire.h>
-
 // "Button+" and "Button-" pins are 7,8
 
 OneWire  ds(11);  // on pin 11 (a 4.7K resistor is necessary)
+// SoftwareSerial SoftSerial(SS_RX, SS_TX); // RX, TX
 
+int SIG_PIN = 12; // pin for telling gps tracker to send battery percentage (to cause interrupt on gps tracker) and
+// available to use in other functions
 int buttonInc = 7;
 int buttonDec = 8;
 int led = 10;
@@ -29,6 +31,27 @@ void pciSetup(byte pin)
     // for pins [0:7] and [8:14] (as defined in m328p datasheet, page 92)
     PCICR  |= bit (digitalPinToPCICRbit(pin));
 }
+
+// uint8_t getGPSTrackerBatteryPercentage(unsigned int timeout) {
+//   char response[100];
+//   memset(response, '\0', 100);
+//   digitalWrite(SIG_PIN, HIGH);
+//   delay(200);
+//   digitalWrite(SIG_PIN, LOW);
+//   Serial.print("GET_BAT_PER");
+//   int i = 0;
+//   unsigned long previous = millis();
+//   do {
+//     if(Serial.available() != 0)
+//     {
+//       response[i] = Serial.read();
+//       i++;
+//     }
+//   }
+//   while ((millis() - previous) < timeout);
+//   resp = atoi(response);
+//   return resp;
+// }
  
 // Use one Routine to handle each group
  
