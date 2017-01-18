@@ -1,14 +1,14 @@
 #include <EEPROM.h>
 #include <OneWire.h>
-// "Button+" and "Button-" pins are 7,8
+// Button-" pin is 8
 
 OneWire  ds(11);  // on pin 11 (a 4.7K resistor is necessary)
 // SoftwareSerial SoftSerial(SS_RX, SS_TX); // RX, TX
 
-int SIG_PIN = 12; // pin for telling gps tracker to send battery percentage (to cause interrupt on gps tracker) and
-// available to use in other functions
-int buttonInc = 7;
+// TODO: #define !! these variables
+int buttonInc = 7; // not used by now
 int buttonDec = 8;
+int SIG_PIN = 9; // pin to handle an interrupt by gps tracker to recieve data about battery status
 int led = 10;
 const int EEPROMBrightnessAddr = 0;
 int brightness;
@@ -73,6 +73,11 @@ ISR (PCINT0_vect) // handle pin change interrupt for D8 to D13 here
         EEPROM.update(EEPROMBrightnessAddr, brightness);
         // delay does not work in ISR!!
       }
+    }
+    // TODO: verify if this code below is good and compileable
+    if ( (PINB & (1 << PINB1)) == 1 )
+    {
+      // then we recieved data about gps tracker battery status and charge
     }
     // ISROddCount1++;
     // if (ISROddCount1 > 2) {
