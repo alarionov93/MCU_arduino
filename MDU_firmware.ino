@@ -1,22 +1,25 @@
 #include <EEPROM.h>
 #include <OneWire.h>
-// Button-" pin is 8
+// #include <SoftwareSerial.h>
+#include "HD44780CustomChars.h"
 
-OneWire  ds(11);  // on pin 11 (a 4.7K resistor is necessary)
+#define ONE_WIRE_BUS        11
+// #define SS_RX               12
+// #define SS_TX               13
+#define SIG_PIN             7
+#define BTN_DEC             8 //decrease led light on LCD
+#define LCD_LED             10
+#define EEPROM_BRIGHT_ADDR  0
+
+OneWire  ds(ONE_WIRE_BUS);  // on pin 11 (a 4.7K resistor is necessary)
 // SoftwareSerial SoftSerial(SS_RX, SS_TX); // RX, TX
 
-// TODO: #define !! these variables
-int buttonInc = 7; // not used by now
-int buttonDec = 8;
-int SIG_PIN = 9; // pin to handle an interrupt by gps tracker to recieve data about battery status
-int led = 10;
-const int EEPROMBrightnessAddr = 0;
 int brightness;
-// ISROddCount needed because IS routine works 2 times:
-//one by pushing button in, other by button pulls back,
-//so only odd interrupts need to be executing
-int ISROddCount1 = 1;
-int ISROddCount2 = 1;
+char buff[50]="";
+int mode = 0;
+int percent = 0;
+
+// TODO: replace all vars of BYTE type to uint8_t and NEVER USE BYTE anymore!!!
 
 void pciSetup(byte pin)
 {
@@ -31,34 +34,13 @@ void pciSetup(byte pin)
     // for pins [0:7] and [8:14] (as defined in m328p datasheet, page 92)
     PCICR  |= bit (digitalPinToPCICRbit(pin));
 }
-
-// uint8_t getGPSTrackerBatteryPercentage(unsigned int timeout) {
-//   char response[100];
-//   memset(response, '\0', 100);
-//   digitalWrite(SIG_PIN, HIGH);
-//   delay(200);
-//   digitalWrite(SIG_PIN, LOW);
-//   Serial.print("GET_BAT_PER");
-//   int i = 0;
-//   unsigned long previous = millis();
-//   do {
-//     if(Serial.available() != 0)
-//     {
-//       response[i] = Serial.read();
-//       i++;
-//     }
-//   }
-//   while ((millis() - previous) < timeout);
-//   resp = atoi(response);
-//   return resp;
-// }
  
 // Use one Routine to handle each group
  
 ISR (PCINT0_vect) // handle pin change interrupt for D8 to D13 here
 {    
-    // && ISROddCount1 % 2 == 0
     // brightness -
+    cli();
     if( (PINB & (1 << PINB0)) == 1 )
     {
       /* LOW to HIGH pin change */
@@ -69,9 +51,8 @@ ISR (PCINT0_vect) // handle pin change interrupt for D8 to D13 here
       if (brightness > 0)
       {
         brightness = brightness - 25;
-        analogWrite(led, brightness);
-        EEPROM.update(EEPROMBrightnessAddr, brightness);
-        // delay does not work in ISR!!
+        analogWrite(LCD_LED, brightness);
+        EEPROM.update(EEPROM_BRIGHT_ADDR, brightness);
       }
     }
     // TODO: verify if this code below is good and compileable
@@ -79,47 +60,63 @@ ISR (PCINT0_vect) // handle pin change interrupt for D8 to D13 here
     {
       // then we recieved data about gps tracker battery status and charge
     }
-    // ISROddCount1++;
-    // if (ISROddCount1 > 2) {
-    //   ISROddCount1 = 1;
-    // }
+    sei();
+    reti();
 }
  
 ISR (PCINT2_vect) // handle pin change interrupt for D0 to D7 here
 {
-    // && ISROddCount2 % 2 == 0
-    // brightness +
-    if( (PIND & (1 << PIND7)) == 1 ){}
-    else
-    {
-      if (brightness < 226)
-      {
-        brightness = brightness + 25;
-        analogWrite(led, brightness);
-        EEPROM.update(EEPROMBrightnessAddr, brightness);
-      }
+    cli();
+    char * pch;
+    char mode_str[4]="";
+    char percent_str[4]="";
+    // reset data
+    mode = 0;
+    percent = 0;
+    memset(buff, '\0', 50);
+
+    if (Serial.available() > 0) {
+        Serial.readBytes(buff, 40);
     }
-    // ISROddCount2++;
-    // if (ISROddCount2 > 2) {
-    //   ISROddCount2 = 1;
-    // }
+    if (strstr(buff, "+CBC") != NULL) {
+        pch = strtok(buff, ":");
+        strcpy(mode, strtok(NULL, ","));
+        strcpy(percent, strtok(NULL, ","));
+        mode = atoi(mode);
+        percent = atoi(percent);
+        Serial.println("Chg lvl recieved.");
+        Serial.println(mode);
+        Serial.println(percent);
+    }
+    sei();
+    reti();
 }
 
+/* TODO: #include LCD lib and define lcd variable */
+// void print_custom_char(int idx, int col, int row, uint8_t representation) {
+//   lcd.createChar(idx, representation);
+//   lcd.setCursor(col, row);
+//   lcd.write(idx);
+// }
+
 void setup(void) {
-  Serial.begin(9600);
-  pinMode(buttonInc, INPUT);
-  pinMode(buttonDec, INPUT);
-  pinMode(led, OUTPUT);
+
+  Serial.begin(19200);
+  // SoftSerial.begin(19200);
+
+  pinMode(SIG_PIN, INPUT);
+  pinMode(BTN_DEC, INPUT);
+  pinMode(LCD_LED, OUTPUT);
 
   // get brightness stored in EEPROM
-  brightness = EEPROM.read(EEPROMBrightnessAddr);
+  brightness = EEPROM.read(EEPROM_BRIGHT_ADDR);
   //set initial brightness of lcd
-  analogWrite(led, brightness);
+  analogWrite(LCD_LED, brightness);
   // enable interrupts by buttons
-  pciSetup(buttonInc);
-  pciSetup(buttonDec);
-  // EICRA external interrupt enable only by falling edge for PCINT0 and INT1
-  // EICRA = 0x0A;
+  cli();
+  pciSetup(SIG_PIN);
+  pciSetup(BTN_DEC);
+  sei();
 }
 
 void loop(void) {
@@ -228,5 +225,66 @@ void loop(void) {
   Serial.print(purePressure);
   Serial.print(" psi");
   Serial.println();
+
+  // Print all data to LCD below
+  // TODO: replace Serial.print with print_custom_char !!
+
+  // battery info interpretating is below
+  if (mode == 0 && percent == 0)
+  {
+    /* TODO: should warn about possible errors
+     * maybe there is trouble with charge circuit or connection */
+    uint8_t character = is_not_chg_warn;
+    Serial.println("Warning! No data, mode and percent is 0.");
+  }
+
+  if (mode == 1) {
+    uint8_t character = is_chg_char;
+    Serial.println(" ***---Charging!---*** ");
+  }
+
+  // if by ranges of percent value
+  if (percent > 0 && percent <= 7)
+  {
+    /* show 0% charged */
+    uint8_t character = bat0_char;
+    Serial.println("Less than 7 percent left");
+  }
+  else if (percent > 7 && percent <= 20)
+  {
+    /* show 20% charged */
+    uint8_t character = bat20_char;
+    Serial.println("20 percent left");
+  }
+  else if (percent > 20 && percent <= 40)
+  {
+    /* show 40% charged */
+    uint8_t character = bat40_char;
+    Serial.println("40 percent left");
+  }
+  else if (percent > 40 && percent <= 60)
+  {
+    /* show 60% charged */
+    uint8_t character = bat60_char;
+    Serial.println("60 percent left");
+  } 
+  else if (percent > 60 && percent <= 80)
+  {
+    /* show 80% charged */
+    uint8_t character = bat80_char;
+    Serial.println("80 percent left");
+  }
+  else if (percent > 80 && percent <= 100)
+  {
+    /* show 100% charged */
+    uint8_t character = bat100_char;
+    Serial.println("100 percent left");
+  }
+  else
+  {
+    /* show warn about possible errors */
+    uint8_t character = is_not_chg_warn;
+    Serial.println("Warning! No data");
+  }
   
 }
