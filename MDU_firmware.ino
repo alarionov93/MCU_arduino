@@ -1,6 +1,6 @@
 #include <EEPROM.h>
 #include <OneWire.h>
-// #include <SoftwareSerial.h>
+//#include <SoftwareSerial.h>
 #include "HD44780CustomChars.h"
 
 #define ONE_WIRE_BUS        11
@@ -18,6 +18,9 @@ int brightness;
 char buff[50]="";
 int mode = 0;
 int percent = 0;
+char * pch;
+char mode_str[4]="";
+char percent_str[4]="";
 
 // TODO: replace all vars of BYTE type to uint8_t and NEVER USE BYTE anymore!!!
 
@@ -40,7 +43,7 @@ void pciSetup(byte pin)
 ISR (PCINT0_vect) // handle pin change interrupt for D8 to D13 here
 {    
     // brightness -
-    cli();
+//    cli();
     if( (PINB & (1 << PINB0)) == 1 )
     {
       /* LOW to HIGH pin change */
@@ -60,36 +63,27 @@ ISR (PCINT0_vect) // handle pin change interrupt for D8 to D13 here
     {
       // then we recieved data about gps tracker battery status and charge
     }
-    sei();
-    reti();
+//    sei();
+//    reti();
 }
  
 ISR (PCINT2_vect) // handle pin change interrupt for D0 to D7 here
 {
-    cli();
-    char * pch;
-    char mode_str[4]="";
-    char percent_str[4]="";
+//    cli();
+   noInterrupts();
     // reset data
     mode = 0;
     percent = 0;
     memset(buff, '\0', 50);
-
+//
     if (Serial.available() > 0) {
         Serial.readBytes(buff, 40);
+        digitalWrite(13, HIGH);
+//        Serial.println("Get data");   
     }
-    if (strstr(buff, "+CBC") != NULL) {
-        pch = strtok(buff, ":");
-        strcpy(mode, strtok(NULL, ","));
-        strcpy(percent, strtok(NULL, ","));
-        mode = atoi(mode);
-        percent = atoi(percent);
-        Serial.println("Chg lvl recieved.");
-        Serial.println(mode);
-        Serial.println(percent);
-    }
-    sei();
-    reti();
+//    sei();
+//    reti();
+   interrupts();
 }
 
 /* TODO: #include LCD lib and define lcd variable */
@@ -107,19 +101,22 @@ void setup(void) {
   pinMode(SIG_PIN, INPUT);
   pinMode(BTN_DEC, INPUT);
   pinMode(LCD_LED, OUTPUT);
+  pinMode(13, OUTPUT);
+  digitalWrite(13, LOW);
 
   // get brightness stored in EEPROM
   brightness = EEPROM.read(EEPROM_BRIGHT_ADDR);
   //set initial brightness of lcd
   analogWrite(LCD_LED, brightness);
   // enable interrupts by buttons
-  cli();
+//  cli();
   pciSetup(SIG_PIN);
   pciSetup(BTN_DEC);
-  sei();
+//  sei();
 }
 
 void loop(void) {
+  digitalWrite(13, LOW);
   byte i;
   byte present = 0;
   byte type_s;
@@ -130,18 +127,18 @@ void loop(void) {
   // 1wire controls here
 
   if ( !ds.search(addr)) {
-    Serial.println("No more addresses.");
-    Serial.println();
+//    Serial.println("No more addresses.");
+//    Serial.println();
     ds.reset_search();
     delay(250);
     return;
   }
 
   if (OneWire::crc8(addr, 7) != addr[7]) {
-      Serial.println("CRC is not valid!");
+//      Serial.println("CRC is not valid!");
       return;
   }
-  Serial.println();
+//  Serial.println();
  
   // the first ROM byte indicates which chip
   switch (addr[0]) {
@@ -158,7 +155,7 @@ void loop(void) {
       type_s = 0;
       break;
     default:
-      Serial.println("Device is not a DS18x20 family device.");
+//      Serial.println("Device is not a DS18x20 family device.");
       return;
   } 
 
@@ -197,11 +194,11 @@ void loop(void) {
   }
   celsius = (float)raw / 16.0;
 //  fahrenheit = celsius * 1.8 + 32.0;
-  Serial.print("Temperature = ");
-  Serial.print(celsius);
-  Serial.print(" C");
+//  Serial.print("Temperature = ");
+//  Serial.print(celsius);
+//  Serial.print(" C");
 //  Serial.print(fahrenheit);
-  Serial.println();
+//  Serial.println();
 
   // get data from analog sensors here
   int sensorValue = analogRead(A0);
@@ -221,10 +218,10 @@ void loop(void) {
   } else {
     purePressure = 0.0;
   }
-  Serial.print("Pressure = ");
-  Serial.print(purePressure);
-  Serial.print(" psi");
-  Serial.println();
+//  Serial.print("Pressure = ");
+//  Serial.print(purePressure);
+//  Serial.print(" psi");
+//  Serial.println();
 
   // Print all data to LCD below
   // TODO: replace Serial.print with print_custom_char !!
@@ -235,12 +232,22 @@ void loop(void) {
     /* TODO: should warn about possible errors
      * maybe there is trouble with charge circuit or connection */
     uint8_t character = is_not_chg_warn;
-    Serial.println("Warning! No data, mode and percent is 0.");
+//    Serial.println("Warning! No data, mode and percent is 0.");
+  }
+
+  if (strstr(buff, "+CBC") != NULL) {
+      pch = strtok(buff, ":");
+      strcpy(mode_str, strtok(NULL, ","));
+      strcpy(percent_str, strtok(NULL, ","));
+      mode = atoi(mode_str);
+      percent = atoi(percent_str);
+      Serial.println(mode);
+      Serial.println(percent);
   }
 
   if (mode == 1) {
     uint8_t character = is_chg_char;
-    Serial.println(" ***---Charging!---*** ");
+//    Serial.println(" ***---Charging!---*** ");
   }
 
   // if by ranges of percent value
@@ -248,43 +255,43 @@ void loop(void) {
   {
     /* show 0% charged */
     uint8_t character = bat0_char;
-    Serial.println("Less than 7 percent left");
+//    Serial.println("Less than 7 percent left");
   }
   else if (percent > 7 && percent <= 20)
   {
     /* show 20% charged */
     uint8_t character = bat20_char;
-    Serial.println("20 percent left");
+//    Serial.println("20 percent left");
   }
   else if (percent > 20 && percent <= 40)
   {
     /* show 40% charged */
     uint8_t character = bat40_char;
-    Serial.println("40 percent left");
+//    Serial.println("40 percent left");
   }
   else if (percent > 40 && percent <= 60)
   {
     /* show 60% charged */
     uint8_t character = bat60_char;
-    Serial.println("60 percent left");
+//    Serial.println("60 percent left");
   } 
   else if (percent > 60 && percent <= 80)
   {
     /* show 80% charged */
     uint8_t character = bat80_char;
-    Serial.println("80 percent left");
+//    Serial.println("80 percent left");
   }
   else if (percent > 80 && percent <= 100)
   {
     /* show 100% charged */
     uint8_t character = bat100_char;
-    Serial.println("100 percent left");
+//    Serial.println("100 percent left");
   }
   else
   {
     /* show warn about possible errors */
     uint8_t character = is_not_chg_warn;
-    Serial.println("Warning! No data");
+//    Serial.println("Warning! No data");
   }
   
 }
