@@ -90,7 +90,7 @@ ISR (PCINT2_vect) // handle pin change interrupt for D0 to D7 here
     // be no sign of data inside ISR, 
     // call lcd.print() right HERE !
     if (strstr(buff, "+CBC") != NULL) {
-        Serial.println(buff);
+        // Serial.println(buff);
         pch = strtok(buff, ":");
 //        Serial.println(pch);
         strcpy(mode_str, strtok(NULL, ","));
@@ -114,7 +114,11 @@ ISR (PCINT2_vect) // handle pin change interrupt for D0 to D7 here
       
         if (mode == 1) {
           uint8_t chg_symbol = is_chg_char;
-          Serial.println(" ***---Charging!---*** ");
+          Serial.println("CHG=TRUE;");
+          // TODO: show chg character on lcd
+        } else {
+          Serial.println("CHG=FALSE;");
+          // TODO: hide chg character on lcd
         }
       
         // if by ranges of percent value
@@ -122,47 +126,49 @@ ISR (PCINT2_vect) // handle pin change interrupt for D0 to D7 here
         {
           /* show 0% charged */
           bat_character = bat0_char;
-          Serial.println("Less than 7 percent left");
+          Serial.println("CH=7prc;");
         }
         else if (percent > 7 && percent <= 20)
         {
           /* show 20% charged */
           bat_character = bat20_char;
-          Serial.println("20 percent left");
+          Serial.println("CH=20prc;");
         }
         else if (percent > 20 && percent <= 40)
         {
           /* show 40% charged */
           bat_character = bat40_char;
-          Serial.println("40 percent left");
+          Serial.println("CH=40prc;");
         }
         else if (percent > 40 && percent <= 60)
         {
           /* show 60% charged */
           bat_character = bat60_char;
-          Serial.println("60 percent left");
+          Serial.println("CH=60prc;");
         } 
         else if (percent > 60 && percent <= 80)
         {
           /* show 80% charged */
           bat_character = bat80_char;
-          Serial.println("80 percent left");
+          Serial.println("CH=80prc;");
         }
         else if (percent > 80 && percent <= 100)
         {
           /* show 100% charged */
           bat_character = bat100_char;
-          Serial.println("100 percent left");
+          Serial.println("CH=100prc;");
         }
-//        else
-//        {
-//          /* show warn about possible errors */
-//          bat_character = is_not_chg_warn;
-//          Serial.println("Warning! No data");
-//        }
+       else
+       {
+         /* show warn about possible errors */
+         // bat_character = is_not_chg_warn;
+         Serial.println("CH=NO_DATA_0;");
+         // TODO: show "!" near bat character on lcd
+       }
         
         digitalWrite(13, HIGH);
     } else {
+      Serial.println("CH=NO_DATA_1;");
       /* TODO: say about problem on lcd */
     }
     interrupts();
@@ -176,6 +182,7 @@ ISR (PCINT2_vect) // handle pin change interrupt for D0 to D7 here
 // }
 
 void setup(void) {
+  int countP = 0;
 
   Serial.begin(19200);
   // SoftSerial.begin(19200);
@@ -211,7 +218,8 @@ void loop(void) {
   // 1wire controls here
 
   if ( !ds.search(addr)) {
-    Serial.println("No more addresses.");
+    Serial.println("NA;");
+    delay(200);
 //    Serial.println();
     ds.reset_search();
     delay(250);
@@ -220,7 +228,8 @@ void loop(void) {
 
   if (OneWire::crc8(addr, 7) != addr[7]) {
       /* TODO: say about problem on lcd */
-      Serial.println("CRC is not valid!");
+      Serial.println("CRC_NOT_VALID;");
+      delay(200);
       return;
   }
 //  Serial.println();
@@ -241,7 +250,8 @@ void loop(void) {
       break;
     default:
       /* TODO: say about problem on lcd */
-      Serial.println("Device is not a DS18x20 family device.");
+      Serial.println("DEVICE_ERROR;");
+      delay(200);
       return;
   } 
 
@@ -280,11 +290,12 @@ void loop(void) {
   }
   celsius = (float)raw / 16.0;
 //  fahrenheit = celsius * 1.8 + 32.0;
-  Serial.print("Temperature = ");
+  Serial.print("T=");
   Serial.print(celsius);
-  Serial.print(" C");
+  Serial.print("C;");
 //  Serial.print(fahrenheit);
   Serial.println();
+  delay(200);
 
   // get data from analog sensors here
   int sensorValue = analogRead(A0);
@@ -306,11 +317,17 @@ void loop(void) {
     /* TODO: in this case if pressure is LOWER than listed in service manual */
     purePressure = 0.0;
   }
-  Serial.print("Pressure = ");
-  Serial.print(purePressure);
-  Serial.print(" psi");
-  Serial.println();
-
+  if (countP % 2 == 0) {
+    Serial.print("P=");
+    Serial.print(purePressure);
+    Serial.print("psi;");
+    Serial.println();
+    delay(200);
+    countP++;
+  }
+  if(countP > 100) {
+    countP = 0;
+  }
   // Print all data to LCD below
   // TODO: replace Serial.print with print_custom_char !!
 
