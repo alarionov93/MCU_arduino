@@ -20,6 +20,7 @@ int mode = 0;
 int percent = 0;
 uint8_t bat_character;
 uint8_t chg_symbol = 0;
+int countP = 0;
 
 
 // TODO: replace all vars of BYTE type to uint8_t and NEVER USE BYTE anymore!!!
@@ -168,7 +169,7 @@ ISR (PCINT2_vect) // handle pin change interrupt for D0 to D7 here
         
         digitalWrite(13, HIGH);
     } else {
-      Serial.println("CH=NO_DATA_1;");
+      //Serial.println("CH=NO_DATA_1;");
       /* TODO: say about problem on lcd */
     }
     interrupts();
@@ -182,7 +183,6 @@ ISR (PCINT2_vect) // handle pin change interrupt for D0 to D7 here
 // }
 
 void setup(void) {
-  int countP = 0;
 
   Serial.begin(19200);
   // SoftSerial.begin(19200);
@@ -299,7 +299,11 @@ void loop(void) {
 
   // get data from analog sensors here
   int sensorValue = analogRead(A0);
+//  int sensorValue = analogRead(A1);
+  int voltageSensorValue = analogRead(A2);
 //  // Convert the analog reading (which goes from 0 - 1023) to a voltage (0 - 5V):
+  float voltageValue = voltageSensorValue * (5.0 / 1023.0);
+  float pureVoltage = voltageValue * 4;
   float pressureValue = sensorValue * (150.0 / 1023.0);
   float purePressure;
   float middlePoint = 819/2;// because 0.5v - 0psi, but 102 after ADC
@@ -317,7 +321,7 @@ void loop(void) {
     /* TODO: in this case if pressure is LOWER than listed in service manual */
     purePressure = 0.0;
   }
-  if (countP % 2 == 0) {
+  if (true) { // TODO: set up this condition properly!
     Serial.print("P=");
     Serial.print(purePressure);
     Serial.print("psi;");
@@ -328,6 +332,12 @@ void loop(void) {
   if(countP > 100) {
     countP = 0;
   }
+  // Voltage - print here
+  Serial.print("V=");
+  Serial.print(pureVoltage);
+  Serial.print("V;");
+  Serial.println();
+  delay(200);
   // Print all data to LCD below
   // TODO: replace Serial.print with print_custom_char !!
 
