@@ -21,6 +21,7 @@ int percent = 0;
 uint8_t bat_character;
 uint8_t chg_symbol = 0;
 int countP = 0;
+int addr_counter = 0;
 
 
 // TODO: replace all vars of BYTE type to uint8_t and NEVER USE BYTE anymore!!!
@@ -213,12 +214,18 @@ void loop(void) {
   byte type_s;
   byte data[12];
   byte addr[8];
+
+  uint8_t prev_addr[8];
+  uint8_t addresses[5][8];
   float celsius, fahrenheit;
   
   // 1wire controls here
 
   if ( !ds.search(addr)) {
     Serial.println("NA;");
+    //reset addr counter
+    addr_counter = 0;
+    // delay is needed because BT module cant work so fast and is not sending ALL the data
     delay(200);
 //    Serial.println();
     ds.reset_search();
@@ -233,6 +240,7 @@ void loop(void) {
       return;
   }
 //  Serial.println();
+
  
   // the first ROM byte indicates which chip
   switch (addr[0]) {
@@ -293,7 +301,67 @@ void loop(void) {
   Serial.print("T=");
   Serial.print(celsius);
   Serial.print("C;");
-//  Serial.print(fahrenheit);
+  /* TODO: ! ONLY if other methods will not work !
+  in different iterations of loop check the addr var
+  and print to different places on lcd by addr value */
+//  if (prev_addr) {
+//
+//  }
+  // prev_addr = addr;
+//  strcpy(addresses[addr_counter], addr);
+  
+  // if(addr_counter > 1) {
+  //   if (addr == addresses[0]) {
+  //     Serial.println("1st;");
+  //   } else if (addr == addresses[1]) {
+  //     Serial.println("2nd;");
+  //   }
+  // }
+  Serial.println("*ADDR*");
+  for (int k = 0; k < 9; k++)
+  {
+    Serial.print(addr[k], HEX);
+    addresses[addr_counter][k] = addr[k];
+  }
+  Serial.println("*ADDR_END*");
+//  Serial.println(addr_counter);
+//  Serial.println("*ADDR_ARR*");
+//  for (int k = 0; k < 8; k++)
+//  {
+//    Serial.print(addresses[addr_counter][k], HEX);
+//  }
+//  Serial.println("*ADDR_ARR_END*");
+//  bool stAddr = false;
+//  bool ndAddr = false;
+//  for (int j = 0; j < 8; j++) {
+//     if (addr[j] != addresses[0][j]) {
+//        break;
+//     } else {
+//        stAddr = true;
+//     }
+//  }
+//  for (int j = 0; j < 8; j++) {   
+//     if (addr[j] != addresses[1][j]) {
+//        break;
+//     } else {
+//        ndAddr = true;
+//     }
+//  }
+//  if (stAddr == true) {
+//    Serial.println("1st;");
+//  }
+//  else if (ndAddr == true) {
+//    Serial.println("2nd;");
+//  } else {
+//    
+//  }
+  if (atoi(addr) == atoi(addresses[0])) {
+    Serial.println("1st;");
+  } else if (atoi(addr) == atoi(addresses[1])) {
+    Serial.println("2nd;");
+  }
+  
+  addr_counter++;
   Serial.println();
   delay(200);
 
