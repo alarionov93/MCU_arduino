@@ -4,6 +4,8 @@
 #include "HD44780CustomChars.h"
 
 #define ONE_WIRE_BUS        11
+#define NUM_SENSORS         2
+
 // #define SS_RX               12
 // #define SS_TX               13
 #define SIG_PIN             7
@@ -21,7 +23,9 @@ int percent = 0;
 uint8_t bat_character;
 uint8_t chg_symbol = 0;
 int countP = 0;
-int addr_counter = 0;
+int addr_counter = 0; /* Necessary for determining exactly which (by count) sensor on 1wire bus is sending data in every iteration.
+(Because typically this code can get data only from 1 sensor on bus in every iteration of loop() function)
+1wire NUM_SENSORS constant SHOULD be defined properly in order to achieve quality of printing temperatures in different LCD places.*/
 
 
 // TODO: replace all vars of BYTE type to uint8_t and NEVER USE BYTE anymore!!!
@@ -223,8 +227,6 @@ void loop(void) {
 
   if ( !ds.search(addr)) {
     Serial.println("NA;");
-    //reset addr counter
-    addr_counter = 0;
     // delay is needed because BT module cant work so fast and is not sending ALL the data
     delay(200);
 //    Serial.println();
@@ -301,6 +303,7 @@ void loop(void) {
   Serial.print("T=");
   Serial.print(celsius);
   Serial.print("C;");
+  Serial.println();
   /* TODO: ! ONLY if other methods will not work !
   in different iterations of loop check the addr var
   and print to different places on lcd by addr value */
@@ -317,20 +320,20 @@ void loop(void) {
   //     Serial.println("2nd;");
   //   }
   // }
-  Serial.println("*ADDR*");
-  for (int k = 0; k < 9; k++)
-  {
-    Serial.print(addr[k], HEX);
-    addresses[addr_counter][k] = addr[k];
-  }
-  Serial.println("*ADDR_END*");
-//  Serial.println(addr_counter);
-//  Serial.println("*ADDR_ARR*");
-//  for (int k = 0; k < 8; k++)
-//  {
-//    Serial.print(addresses[addr_counter][k], HEX);
-//  }
-//  Serial.println("*ADDR_ARR_END*");
+  // Serial.println("*ADDR*");
+  // for (int k = 0; k < 8; k++)
+  // {
+  //   Serial.print(addr[k], HEX);
+  //   addresses[addr_counter][k] = addr[k];
+  // }
+  // Serial.println("*ADDR_END*");
+  // Serial.println(addr_counter);
+  // Serial.println("*ADDR_ARR*");
+  // for (int k = 0; k < 8; k++)
+  // {
+  //  Serial.print(addresses[addr_counter][k], HEX);
+  // }
+  // Serial.println("*ADDR_ARR_END*");
 //  bool stAddr = false;
 //  bool ndAddr = false;
 //  for (int j = 0; j < 8; j++) {
@@ -355,14 +358,26 @@ void loop(void) {
 //  } else {
 //    
 //  }
-  if (atoi(addr) == atoi(addresses[0])) {
-    Serial.println("1st;");
-  } else if (atoi(addr) == atoi(addresses[1])) {
-    Serial.println("2nd;");
+
+  if (addr_counter == 0) 
+  {
+//    Serial.println("1st;");
+    // Print 1st temperature to LCD
+  }
+  else if (addr_counter == 1)
+  {
+//    Serial.println("2nd;");
+    // Print 2nd temperature to LCD
+  } else {
+
   }
   
   addr_counter++;
-  Serial.println();
+  if (addr_counter > NUM_SENSORS - 1)
+  {
+    addr_counter = 0;
+  }
+  // Serial.println();
   delay(200);
 
   // get data from analog sensors here
@@ -389,26 +404,19 @@ void loop(void) {
     /* TODO: in this case if pressure is LOWER than listed in service manual */
     purePressure = 0.0;
   }
-  if (true) { // TODO: set up this condition properly!
+  if (addr_counter == 0) { // TODO: set up this condition properly!
     Serial.print("P=");
     Serial.print(purePressure);
     Serial.print("psi;");
     Serial.println();
     delay(200);
-    countP++;
-  }
-  if(countP > 100) {
-    countP = 0;
-  }
-  // Voltage - print here
-  Serial.print("V=");
-  Serial.print(pureVoltage);
-  Serial.print("V;");
-  Serial.println();
-  delay(200);
-  // Print all data to LCD below
-  // TODO: replace Serial.print with print_custom_char !!
-
-  
-  
+    // Voltage - print here
+    Serial.print("V=");
+    Serial.print(pureVoltage);
+    Serial.print("V;");
+    Serial.println();
+    delay(200);
+    // Print all data to LCD below
+    // TODO: replace Serial.print with print_custom_char !!
+  } 
 }
