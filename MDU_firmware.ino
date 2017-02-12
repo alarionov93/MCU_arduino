@@ -11,10 +11,14 @@
 #define SIG_PIN             7
 #define BTN_DEC             8 //decrease led light on LCD
 #define LCD_LED             10
+#define STATUS_LED_PIN      12
 #define EEPROM_BRIGHT_ADDR  0
 
 OneWire  ds(ONE_WIRE_BUS);  // on pin 11
 // SoftwareSerial SoftSerial(SS_RX, SS_TX); // RX, TX
+
+/* TODO: set up status variable and write 1 on STATUS_LED_PIN if alright, and 0 if NOT !!
+ Thus, every place with error should turn off status led */
 
 int brightness;
 char buff[50]="";
@@ -74,7 +78,7 @@ ISR (PCINT0_vect) // handle pin change interrupt for D8 to D13 here
 ISR (PCINT2_vect) // handle pin change interrupt for D0 to D7 here
 {
     noInterrupts();
-    
+    digitalWrite(STATUS_LED_PIN, HIGH); // if previous recieving was with error
     // reset data
     memset(buff, '\0', 50);
     
@@ -169,6 +173,8 @@ ISR (PCINT2_vect) // handle pin change interrupt for D0 to D7 here
          /* show warn about possible errors */
          // bat_character = is_not_chg_warn;
          Serial.println("CH=NO_DATA_0;");
+         //show error on status led
+         digitalWrite(STATUS_LED_PIN, LOW);         
          // TODO: show "!" near bat character on lcd
        }
         
@@ -195,8 +201,10 @@ void setup(void) {
   pinMode(SIG_PIN, INPUT);
   pinMode(BTN_DEC, INPUT);
   pinMode(LCD_LED, OUTPUT);
+  pinMode(STATUS_LED_PIN, OUTPUT);
   pinMode(13, OUTPUT);
   digitalWrite(13, LOW);
+  digitalWrite(STATUS_LED_PIN, HIGH); //show that everything is alright
 
   // get brightness stored in EEPROM
   noInterrupts();
@@ -236,8 +244,9 @@ void loop(void) {
   }
 
   if (OneWire::crc8(addr, 7) != addr[7]) {
-      /* TODO: say about problem on lcd */
+      /* TODO: say about problem on lcd and status led */
       Serial.println("CRC_NOT_VALID;");
+      digitalWrite(STATUS_LED_PIN, LOW);
       delay(200);
       return;
   }
@@ -259,8 +268,9 @@ void loop(void) {
       type_s = 0;
       break;
     default:
-      /* TODO: say about problem on lcd */
+      /* TODO: say about problem on lcd and status led*/
       Serial.println("DEVICE_ERROR;");
+      digitalWrite(STATUS_LED_PIN, LOW);
       delay(200);
       return;
   } 
@@ -381,22 +391,23 @@ void loop(void) {
   delay(200);
 
   // get data from analog sensors here
-  int sensorValue = analogRead(A0);
-//  int sensorValue = analogRead(A1);
+  int pressureSensorValue = analogRead(A0);
+  //  int fuelSensorValue = analogRead(A1);
   int voltageSensorValue = analogRead(A2);
-//  // Convert the analog reading (which goes from 0 - 1023) to a voltage (0 - 5V):
+  // Convert the analog reading (which goes from 0 - 1023) to a voltage (0 - 5V):
   float voltageValue = voltageSensorValue * (5.0 / 1023.0);
   float pureVoltage = voltageValue * 4;
-  float pressureValue = sensorValue * (150.0 / 1023.0);
+  // pressure conversion here
+  float pressureValue = pressureSensorValue * (150.0 / 1023.0);
   float purePressure;
   float middlePoint = 819/2;// because 0.5v - 0psi, but 102 after ADC
   //and 4.5v is 150psi but 921 after ADC prescaling, so full range is 819
-  if (sensorValue > 923 && sensorValue <= 1023) {
+  if (pressureSensorValue > 923 && pressureSensorValue <= 1023) {
     purePressure = 150.0;
-  } else if (sensorValue > 102 && sensorValue <= 923) {
-    if (sensorValue >= middlePoint) {
+  } else if (pressureSensorValue > 102 && pressureSensorValue <= 923) {
+    if (pressureSensorValue >= middlePoint) {
       purePressure = pressureValue + pressureValue * 0.11;
-    } else if (sensorValue < middlePoint) {
+    } else if (pressureSensorValue < middlePoint) {
       purePressure = pressureValue - pressureValue * 0.11;
     }
   } else {
@@ -404,7 +415,7 @@ void loop(void) {
     /* TODO: in this case if pressure is LOWER than listed in service manual */
     purePressure = 0.0;
   }
-  if (addr_counter == 0) { // TODO: set up this condition properly!
+  if (addr_counter == 0) { // show data only in one of cycles (because of 1wire sensors, which send data only from one sensor in 1 iteration of loop)
     Serial.print("P=");
     Serial.print(purePressure);
     Serial.print("psi;");
