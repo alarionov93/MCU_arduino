@@ -22,8 +22,8 @@ OneWire  ds(ONE_WIRE_BUS);  // on pin 11
 
 int brightness;
 char buff[50]="";
-int mode = 0;
-int percent = 0;
+volatile int mode = 0;
+volatile int percent = 0;
 uint8_t bat_character;
 uint8_t chg_symbol = 0;
 int countP = 0;
@@ -83,9 +83,7 @@ ISR (PCINT2_vect) // handle pin change interrupt for D0 to D7 here
     memset(buff, '\0', 50);
     
     uint8_t data;
-    volatile int i = 0;
-    volatile int mode = 0;
-    volatile int percent = 0;
+    int i = 0;
 
     volatile char * pch;
     volatile char mode_str[4]="";
@@ -106,11 +104,11 @@ ISR (PCINT2_vect) // handle pin change interrupt for D0 to D7 here
         strcpy(mode_str, strtok(NULL, ","));
         strcpy(percent_str, strtok(NULL, ","));
 //        strcpy(voltage, strtok(NULL, "\r"));
-        Serial.println(atoi(mode_str));
         mode = atoi(mode_str);
-        Serial.println(atoi(percent_str));
+        // Serial.println(mode);
+
         percent = atoi(percent_str);
-        /* here print to lcd */
+        // Serial.println(percent);
 
         // battery info interpretating is below
         // this section should be in ISR. This is fucking shit, but the only solution I have:-/
@@ -121,7 +119,7 @@ ISR (PCINT2_vect) // handle pin change interrupt for D0 to D7 here
 //          bat_character = is_not_chg_warn;
 //          Serial.println("Warning! No data, mode and percent is 0.");
 //        }
-      
+        // TODO: move the section which lies below AWAY from interrupt, now we have data inside of ISR!!
         if (mode == 1) {
           uint8_t chg_symbol = is_chg_char;
           Serial.println("CHG=TRUE;");
