@@ -83,9 +83,9 @@ ISR (PCINT2_vect) // handle pin change interrupt for D0 to D7 here
     memset(buff, '\0', 50);
     
     uint8_t data;
-    int i = 0;
-    mode = 0;
-    percent = 0;
+    volatile int i = 0;
+    volatile int mode = 0;
+    volatile int percent = 0;
 
     volatile char * pch;
     volatile char mode_str[4]="";
@@ -314,6 +314,8 @@ void loop(void) {
   Serial.print(celsius);
   Serial.print("C;");
   Serial.println();
+  Serial.println(mode);
+  Serial.println(percent);
   /* TODO: ! ONLY if other methods will not work !
   in different iterations of loop check the addr var
   and print to different places on lcd by addr value */
