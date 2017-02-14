@@ -4,9 +4,17 @@
 <head>
     <title>Moto Data Viewer</title>
     <!--Load the AJAX API-->
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript">
 
+      function getData() {
+          var data;
+          $.get('temp.json', function(resp) {
+              data = resp;
+          });
+          return data;
+      }
       // Load the Visualization API and the corechart package.
       google.charts.load('current', {'packages':['corechart']});
 
@@ -22,13 +30,7 @@
         var data = new google.visualization.DataTable();
         data.addColumn('string', 'Topping');
         data.addColumn('number', 'Slices');
-        data.addRows([
-          ['1', 38],
-          ['2', 7],
-          ['3', 10],
-          ['4', 21],
-          ['5', 42]
-        ]);
+        data.addRows(getData());
 
         // Set chart options
         var options = {'title':'Moto Data Visulizer',

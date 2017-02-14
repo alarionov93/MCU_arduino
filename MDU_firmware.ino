@@ -1,3 +1,5 @@
+#include <LiquidCrystal.h>
+
 #include <EEPROM.h>
 #include <OneWire.h>
 //#include <SoftwareSerial.h>
@@ -8,14 +10,25 @@
 
 // #define SS_RX               12
 // #define SS_TX               13
+#define HIGER_TEMP          100 // TODO: watch in Transalp specification !!
 #define SIG_PIN             7
-#define BTN_DEC             8 //decrease led light on LCD
+#define BTN_DEC             8 // decrease led light on LCD
 #define LCD_LED             10
 #define STATUS_LED_PIN      12
 #define EEPROM_BRIGHT_ADDR  0
+#define ERR_LCD_IDX         14 //index of err message on lcd
 
 OneWire  ds(ONE_WIRE_BUS);  // on pin 11
 // SoftwareSerial SoftSerial(SS_RX, SS_TX); // RX, TX
+LiquidCrystal lcd(9,6,5,4,3,2);
+/* ERROR CODES:
+0 - problem with 1wire CRC
+1 - problem with 1wire DEVICES ADDRESSES
+2 - low pressure
+3 - gps bat get level
+4 - high voltage
+5 - high temperature
+ */
 
 /* TODO: set up status variable and write 1 on STATUS_LED_PIN if alright, and 0 if NOT !!
  Thus, every place with error should turn off status led */
@@ -98,103 +111,39 @@ ISR (PCINT2_vect) // handle pin change interrupt for D0 to D7 here
     // be no sign of data inside ISR, 
     // call lcd.print() right HERE !
     if (strstr(buff, "+CBC") != NULL) {
-        // Serial.println(buff);
+        lcd.setCursor(ERR_LCD_IDX,0); // error 3 is gone
+        lcd.print("  ");
         pch = strtok(buff, ":");
-//        Serial.println(pch);
         strcpy(mode_str, strtok(NULL, ","));
         strcpy(percent_str, strtok(NULL, ","));
 //        strcpy(voltage, strtok(NULL, "\r"));
         mode = atoi(mode_str);
-        // Serial.println(mode);
-
         percent = atoi(percent_str);
-        // Serial.println(percent);
 
-        // battery info interpretating is below
-        // this section should be in ISR. This is fucking shit, but the only solution I have:-/
-//        if (mode == 0 && percent < 50)
-//        {
-//          /* TODO: should warn about possible errors
-//          /* maybe there is trouble with charge circuit or connection */
-//          bat_character = is_not_chg_warn;
-//          Serial.println("Warning! No data, mode and percent is 0.");
-//        }
-        // TODO: move the section which lies below AWAY from interrupt, now we have data inside of ISR!!
-        if (mode == 1) {
-          uint8_t chg_symbol = is_chg_char;
-          Serial.println("CHG=TRUE;");
-          // TODO: show chg character on lcd
-        } else {
-          Serial.println("CHG=FALSE;");
-          // TODO: hide chg character on lcd
-        }
-      
-        // if by ranges of percent value
-        if (percent > 0 && percent <= 7)
-        {
-          /* show 0% charged */
-          bat_character = bat0_char;
-          Serial.println("CH=7prc;");
-        }
-        else if (percent > 7 && percent <= 20)
-        {
-          /* show 20% charged */
-          bat_character = bat20_char;
-          Serial.println("CH=20prc;");
-        }
-        else if (percent > 20 && percent <= 40)
-        {
-          /* show 40% charged */
-          bat_character = bat40_char;
-          Serial.println("CH=40prc;");
-        }
-        else if (percent > 40 && percent <= 60)
-        {
-          /* show 60% charged */
-          bat_character = bat60_char;
-          Serial.println("CH=60prc;");
-        } 
-        else if (percent > 60 && percent <= 80)
-        {
-          /* show 80% charged */
-          bat_character = bat80_char;
-          Serial.println("CH=80prc;");
-        }
-        else if (percent > 80 && percent <= 100)
-        {
-          /* show 100% charged */
-          bat_character = bat100_char;
-          Serial.println("CH=100prc;");
-        }
-       else
-       {
-         /* show warn about possible errors */
-         // bat_character = is_not_chg_warn;
-         Serial.println("CH=NO_DATA_0;");
-         //show error on status led
-         digitalWrite(STATUS_LED_PIN, LOW);         
-         // TODO: show "!" near bat character on lcd
-       }
-        
         digitalWrite(13, HIGH);
     } else {
       //Serial.println("CH=NO_DATA_1;");
       /* TODO: say about problem on lcd */
+      digitalWrite(STATUS_LED_PIN, LOW); // error 3
+      // lcd.setCursor(ERR_LCD_IDX,0);
+      // lcd.print("#");
+      // lcd.print(3); // TODO: causes an error with empty lcd, FIX IT!@
     }
     interrupts();
 }
 
 /* TODO: #include LCD lib and define lcd variable */
-// void print_custom_char(int idx, int col, int row, uint8_t representation) {
-//   lcd.createChar(idx, representation);
-//   lcd.setCursor(col, row);
-//   lcd.write(idx);
-// }
+void print_custom_char(int idx, int col, int row, uint8_t representation) {
+  lcd.createChar(idx, representation);
+  lcd.setCursor(col, row);
+  lcd.write(idx);
+}
 
 void setup(void) {
 
   Serial.begin(19200);
   // SoftSerial.begin(19200);
+  lcd.begin(16,2);
 
   pinMode(SIG_PIN, INPUT);
   pinMode(BTN_DEC, INPUT);
@@ -241,10 +190,15 @@ void loop(void) {
     return;
   }
 
+  lcd.setCursor(ERR_LCD_IDX,0); // error 0 is gone
+  lcd.print("  ");
   if (OneWire::crc8(addr, 7) != addr[7]) {
       /* TODO: say about problem on lcd and status led */
       Serial.println("CRC_NOT_VALID;");
       digitalWrite(STATUS_LED_PIN, LOW);
+      lcd.setCursor(ERR_LCD_IDX,0);// error 0
+      lcd.print("#");
+      lcd.print(0);
       delay(200);
       return;
   }
@@ -252,6 +206,8 @@ void loop(void) {
 
  
   // the first ROM byte indicates which chip
+  lcd.setCursor(ERR_LCD_IDX,0); // error 1 is gone
+  lcd.print("  ");
   switch (addr[0]) {
     case 0x10:
 //      Serial.println("  Chip = DS18S20");  // or old DS1820
@@ -268,7 +224,10 @@ void loop(void) {
     default:
       /* TODO: say about problem on lcd and status led*/
       Serial.println("DEVICE_ERROR;");
-      digitalWrite(STATUS_LED_PIN, LOW);
+      digitalWrite(STATUS_LED_PIN, LOW); // error 1
+      lcd.setCursor(ERR_LCD_IDX,0);
+      lcd.print("#");
+      lcd.print(1);
       delay(200);
       return;
   } 
@@ -307,6 +266,7 @@ void loop(void) {
     //// default is 12 bit resolution, 750 ms conversion time
   }
   celsius = (float)raw / 16.0;
+  int cel = (int) celsius; //int value to print on LCD !
 //  fahrenheit = celsius * 1.8 + 32.0;
   Serial.print("T=");
   Serial.print(celsius);
@@ -373,11 +333,29 @@ void loop(void) {
   {
 //    Serial.println("1st;");
     // Print 1st temperature to LCD
+    lcd.setCursor(0,0);
+    lcd.print(cel);
+    if (cel > HIGER_TEMP) 
+    {
+      lcd.print("C!");
+      lcd.setCursor(ERR_LCD_IDX,0); //error 5
+      lcd.print("#");
+      lcd.print(5);
+    }
+    else 
+    {
+      lcd.setCursor(ERR_LCD_IDX,0);
+      lcd.print("  "); // error is gone
+      lcd.print("C ");
+    }
   }
   else if (addr_counter == 1)
   {
 //    Serial.println("2nd;");
     // Print 2nd temperature to LCD
+    lcd.setCursor(0,1);
+    lcd.print(cel);
+    lcd.print("C ");
   } else {
 
   }
@@ -387,7 +365,6 @@ void loop(void) {
   {
     addr_counter = 0;
   }
-  // Serial.println();
   delay(200);
 
   // get data from analog sensors here
@@ -402,6 +379,8 @@ void loop(void) {
   float purePressure;
   float middlePoint = 819/2;// because 0.5v - 0psi, but 102 after ADC
   //and 4.5v is 150psi but 921 after ADC prescaling, so full range is 819
+  lcd.setCursor(ERR_LCD_IDX,0); // error 2 is gone
+  lcd.print("  ");
   if (pressureSensorValue > 923 && pressureSensorValue <= 1023) {
     purePressure = 150.0;
   } else if (pressureSensorValue > 102 && pressureSensorValue <= 923) {
@@ -413,21 +392,129 @@ void loop(void) {
   } else {
     /* TODO: say about problem on lcd */
     /* TODO: in this case if pressure is LOWER than listed in service manual */
+    lcd.setCursor(ERR_LCD_IDX,0); // error 2
+    lcd.print("#");
+    lcd.print(2);
     purePressure = 0.0;
+
   }
   if (addr_counter == 0) { // show data only in one of cycles (because of 1wire sensors, which send data only from one sensor in 1 iteration of loop)
     Serial.print("P=");
     Serial.print(purePressure);
     Serial.print("psi;");
     Serial.println();
+    lcd.setCursor(5,0);
+    lcd.print((int)purePressure);
+    lcd.print("p ");
     delay(200);
     // Voltage - print here
     Serial.print("V=");
     Serial.print(pureVoltage);
     Serial.print("V;");
     Serial.println();
+    lcd.setCursor(5,1);
+    lcd.print(pureVoltage);
+    lcd.print("V");
     delay(200);
     // Print all data to LCD below
     // TODO: replace Serial.print with print_custom_char !!
+
+    // GPS tracker battery info interpretating below
+    // this section should be in ISR. This is fucking shit, but the only solution I have:-/
+//        if (mode == 0 && percent < 50)
+//        {
+//          /* TODO: should warn about possible errors
+//          /* maybe there is trouble with charge circuit or connection */
+//          bat_character = is_not_chg_warn;
+//          Serial.println("Warning! No data, mode and percent is 0.");
+//        }
+        // TODO: move the section which lies below AWAY from interrupt, now we have data inside of ISR!!
+    
+      lcd.createChar(0, bat0_char);
+      lcd.createChar(1, bat20_char);
+      lcd.createChar(2, bat40_char);
+      lcd.createChar(3, bat60_char);
+      lcd.createChar(4, bat80_char);
+      lcd.createChar(5, bat100_char);
+      lcd.createChar(6, is_chg_char);
+      lcd.createChar(7, is_not_chg_warn);
+      // lcd.setCursor(12,1);
+      // lcd.write(6);
+      if (mode == 1) {
+        uint8_t chg_symbol = is_chg_char;
+        Serial.println("CHG=TRUE;");
+        // TODO: show chg character on lcd
+        lcd.createChar(6, is_chg_char);
+        lcd.setCursor(15,1);
+        lcd.write(byte(6));
+      } else {
+        Serial.println("CHG=FALSE;");
+        lcd.setCursor(15,1);
+        lcd.print(" ");
+        // TODO: hide chg character on lcd
+      }
+
+      lcd.setCursor(16,1);
+    
+      // if by ranges of percent value
+      if (percent > 0 && percent <= 7)
+      {
+        /* show 0% charged */
+        bat_character = bat0_char;
+        Serial.println("CH=7prc;");
+        lcd.createChar(0, bat0_char);
+        // lcd.print(bat_character);
+        lcd.write(byte(0));
+      }
+      else if (percent > 7 && percent <= 20)
+      {
+        /* show 20% charged */
+        bat_character = bat20_char;
+        Serial.println("CH=20prc;");
+        lcd.createChar(1, bat20_char);
+        lcd.write(byte(1));
+      }
+      else if (percent > 20 && percent <= 40)
+      {
+        /* show 40% charged */
+        bat_character = bat40_char;
+        lcd.createChar(2, bat40_char);
+        Serial.println("CH=40prc;");
+        lcd.write(byte(2));
+      }
+      else if (percent > 40 && percent <= 60)
+      {
+        /* show 60% charged */
+        bat_character = bat60_char;
+        lcd.createChar(3, bat60_char);
+        Serial.println("CH=60prc;");
+        lcd.write(byte(3));
+      } 
+      else if (percent > 60 && percent <= 80)
+      {
+        /* show 80% charged */
+        bat_character = bat80_char;
+        Serial.println("CH=80prc;");
+        lcd.createChar(4, bat80_char);
+        lcd.write(byte(4));
+      }
+      else if (percent > 80 && percent <= 100)
+      {
+        /* show 100% charged */
+        bat_character = bat100_char;
+        Serial.println("CH=100prc;");
+        lcd.createChar(5, bat100_char);
+        lcd.write(byte(5));
+      }
+      else
+      {
+       /* show warn about possible errors */
+       // bat_character = is_not_chg_warn;
+       Serial.println("CH=NO_DATA_0;");
+       lcd.print("?"); // TODO: error 3 here, too
+       //show error on status led // how to show error properly (because this code is within interrupt now)
+       // digitalWrite(STATUS_LED_PIN, LOW);         
+       // TODO: show "!" near bat character on lcd
+      }
   } 
 }
