@@ -1,6 +1,8 @@
 import datetime
 import json
 
+# TODO: create flask app with database and load data into it
+
 with open('data/temp1.txt', "r") as f:
         import pdb
         pure_data = f.read()
@@ -64,3 +66,4 @@ with open('data/voltage.txt', "r") as f:
 
 with open('data/voltage.json', "a") as f1:
     f1.write(json.dumps(data_lst))
+
