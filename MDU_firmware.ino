@@ -124,7 +124,7 @@ ISR (PCINT2_vect) // handle pin change interrupt for D0 to D7 here
     } else {
       //Serial.println("CH=NO_DATA_1;");
       /* TODO: say about problem on lcd */
-      digitalWrite(STATUS_LED_PIN, LOW); // error 3
+      // digitalWrite(STATUS_LED_PIN, LOW); // error 3
       // lcd.setCursor(ERR_LCD_IDX,0);
       // lcd.print("#");
       // lcd.print(3); // TODO: causes an error with empty lcd, FIX IT!@
@@ -137,6 +137,16 @@ void print_custom_char(int idx, int col, int row, uint8_t representation) {
   lcd.createChar(idx, representation);
   lcd.setCursor(col, row);
   lcd.write(idx);
+}
+
+void print_data(int length, int col, int row, uint8_t data[10]) {
+  lcd.setCursor(col, row);
+  for (int i = 0; i < length; i++)
+  {
+    lcd.print(" ");
+  }
+  lcd.setCursor(col, row);
+  // lcd.print(idx);
 }
 
 void setup(void) {
@@ -163,6 +173,14 @@ void setup(void) {
   // enable interrupts by buttons
   pciSetup(SIG_PIN);
   pciSetup(BTN_DEC);
+  lcd.createChar(0, bat0_char);
+  lcd.createChar(1, bat20_char);
+  lcd.createChar(2, bat40_char);
+  lcd.createChar(3, bat60_char);
+  lcd.createChar(4, bat80_char);
+  lcd.createChar(5, bat100_char);
+  lcd.createChar(6, is_chg_char);
+  lcd.createChar(7, is_not_chg_warn);
   interrupts();
 }
 
@@ -194,14 +212,14 @@ void loop(void) {
       /* TODO: say about problem on lcd and status led */
       Serial.println("CRC_NOT_VALID;");
       digitalWrite(STATUS_LED_PIN, LOW);
-      lcd.setCursor(ERR_LCD_IDX,0);// error 0
-      lcd.write('#');
-      lcd.write('0');
+      // lcd.setCursor(ERR_LCD_IDX,0);// error 0
+      // lcd.write('#');
+      // lcd.write('0');
       delay(200);
       return;
   } else {
-      lcd.setCursor(ERR_LCD_IDX,0); // error 0 is gone
-      lcd.print("  ");
+      // lcd.setCursor(ERR_LCD_IDX,0); // error 0 is gone
+      // lcd.print("  ");
   }
 //  Serial.println();
 
@@ -211,29 +229,29 @@ void loop(void) {
   switch (addr[0]) {
     case 0x10:
 //      Serial.println("  Chip = DS18S20");  // or old DS1820
-      lcd.setCursor(ERR_LCD_IDX,0); // error 1 is gone
-      lcd.print("  ");
+      // lcd.setCursor(ERR_LCD_IDX,0); // error 1 is gone
+      // lcd.print("  ");
       type_s = 1;
       break;
     case 0x28:
 //      Serial.println("  Chip = DS18B20");
-      lcd.setCursor(ERR_LCD_IDX,0); // error 1 is gone
-      lcd.print("  ");
+      // lcd.setCursor(ERR_LCD_IDX,0); // error 1 is gone
+      // lcd.print("  ");
       type_s = 0;
       break;
     case 0x22:
 //      Serial.println("  Chip = DS1822");
-      lcd.setCursor(ERR_LCD_IDX,0); // error 1 is gone
-      lcd.print("  ");
+      // lcd.setCursor(ERR_LCD_IDX,0); // error 1 is gone
+      // lcd.print("  ");
       type_s = 0;
       break;
     default:
       /* TODO: say about problem on lcd and status led*/
       Serial.println("DEVICE_ERROR;");
       digitalWrite(STATUS_LED_PIN, LOW); // error 1
-      lcd.setCursor(ERR_LCD_IDX,0);
-      lcd.write('#');
-      lcd.write('1');
+      // lcd.setCursor(ERR_LCD_IDX,0);
+      // lcd.write('#');
+      // lcd.write('1');
       delay(200);
       return;
   } 
@@ -335,54 +353,6 @@ void loop(void) {
 //    
 //  }
 
-  if (addr_counter == 0) 
-  {
-//    Serial.println("1st;");
-    // Print 1st temperature to LCD
-    Serial.print("T1=");
-    Serial.print(celsius);
-    Serial.print("C;");
-    Serial.println();
-
-    lcd.setCursor(0,0);
-    lcd.print("     "); // clear the place for temperature
-    lcd.print(cel);
-    if (cel > HIGER_TEMP) 
-    {
-      lcd.print("C!");
-      lcd.setCursor(ERR_LCD_IDX,0); //error 5
-      lcd.print("#");
-      lcd.print(5);
-    }
-    else 
-    {
-      lcd.setCursor(ERR_LCD_IDX,0);
-      lcd.print("  "); // error is gone
-      lcd.print("C ");
-    }
-  }
-  else if (addr_counter == 1)
-  {
-//    Serial.println("2nd;");
-    // Print 2nd temperature to LCD
-    Serial.print("T2=");
-    Serial.print(celsius);
-    Serial.print("C;");
-    Serial.println();
-    lcd.setCursor(0,1);
-    lcd.print(cel);
-    lcd.print("C ");
-  } else {
-
-  }
-  
-  addr_counter++;
-  if (addr_counter > NUM_SENSORS - 1)
-  {
-    addr_counter = 0;
-  }
-  delay(200);
-
   // get data from analog sensors here
   int pressureSensorValue = analogRead(A0);
   //  int fuelSensorValue = analogRead(A1);
@@ -395,8 +365,7 @@ void loop(void) {
   float purePressure;
   float middlePoint = 819/2;// because 0.5v - 0psi, but 102 after ADC
   //and 4.5v is 150psi but 921 after ADC prescaling, so full range is 819
-  lcd.setCursor(ERR_LCD_IDX,0); // error 2 is gone
-  lcd.print("  ");
+
   if (pressureSensorValue > 923 && pressureSensorValue <= 1023) {
     purePressure = 150.0;
   } else if (pressureSensorValue > 102 && pressureSensorValue <= 923) {
@@ -408,9 +377,9 @@ void loop(void) {
   } else {
     /* TODO: say about problem on lcd */
     /* TODO: in this case if pressure is LOWER than listed in service manual */
-    lcd.setCursor(ERR_LCD_IDX,0); // error 2
-    lcd.write('#');
-    lcd.write('2');
+    // lcd.setCursor(ERR_LCD_IDX,0); // error 2
+    // lcd.write('#');
+    // lcd.write('2');
     purePressure = 0.0;
 
   }
@@ -419,19 +388,14 @@ void loop(void) {
     Serial.print(purePressure);
     Serial.print("psi;");
     Serial.println();
-    lcd.setCursor(5,0);
-    lcd.print((int)purePressure);
-    lcd.print("p ");
     delay(200);
     // Voltage - print here
     Serial.print("V=");
     Serial.print(pureVoltage);
     Serial.print("V;");
     Serial.println();
-    lcd.setCursor(5,1);
-    lcd.print(pureVoltage);
-    lcd.print("V");
     delay(200);
+
     // Print all data to LCD below
     // TODO: replace Serial.print with print_custom_char !!
 
@@ -446,31 +410,36 @@ void loop(void) {
 //        }
         // TODO: move the section which lies below AWAY from interrupt, now we have data inside of ISR!!
     
-      lcd.createChar(0, bat0_char);
-      lcd.createChar(1, bat20_char);
-      lcd.createChar(2, bat40_char);
-      lcd.createChar(3, bat60_char);
-      lcd.createChar(4, bat80_char);
-      lcd.createChar(5, bat100_char);
-      lcd.createChar(6, is_chg_char);
-      lcd.createChar(7, is_not_chg_warn);
+      // lcd.createChar(0, bat0_char);
+      // lcd.createChar(1, bat20_char);
+      // lcd.createChar(2, bat40_char);
+      // lcd.createChar(3, bat60_char);
+      // lcd.createChar(4, bat80_char);
+      // lcd.createChar(5, bat100_char);
+      // lcd.createChar(6, is_chg_char);
+      // lcd.createChar(7, is_not_chg_warn);
       // lcd.setCursor(12,1);
       // lcd.write(6);
+      // lcd.clear();
+
+  // lcd.createChar(4, bat80_char);
+  // lcd.setCursor(16,1);
+  // lcd.write(byte(4));
       if (mode == 1) {
         uint8_t chg_symbol = is_chg_char;
         Serial.println("CHG=TRUE;");
         // TODO: show chg character on lcd
-        lcd.createChar(6, is_chg_char);
-        lcd.setCursor(15,1);
+        // lcd.createChar(6, is_chg_char);
+        lcd.setCursor(14,1);
         lcd.write(byte(6));
       } else {
         Serial.println("CHG=FALSE;");
-        lcd.setCursor(15,1);
+        lcd.setCursor(14,1);
         lcd.print(" ");
         // TODO: hide chg character on lcd
       }
 
-      lcd.setCursor(16,1);
+      percent = 23;//temp line
     
       // if by ranges of percent value
       if (percent > 0 && percent <= 7)
@@ -478,8 +447,9 @@ void loop(void) {
         /* show 0% charged */
         bat_character = bat0_char;
         Serial.println("CH=7prc;");
-        lcd.createChar(0, bat0_char);
+        // lcd.createChar(0, bat0_char);
         // lcd.print(bat_character);
+        lcd.setCursor(15,1);
         lcd.write(byte(0));
       }
       else if (percent > 7 && percent <= 20)
@@ -487,23 +457,26 @@ void loop(void) {
         /* show 20% charged */
         bat_character = bat20_char;
         Serial.println("CH=20prc;");
-        lcd.createChar(1, bat20_char);
+        // lcd.createChar(1, bat20_char);
+        lcd.setCursor(15,1);
         lcd.write(byte(1));
       }
       else if (percent > 20 && percent <= 40)
       {
         /* show 40% charged */
         bat_character = bat40_char;
-        lcd.createChar(2, bat40_char);
+        // lcd.createChar(2, bat40_char);
         Serial.println("CH=40prc;");
+        lcd.setCursor(15,1);
         lcd.write(byte(2));
       }
       else if (percent > 40 && percent <= 60)
       {
         /* show 60% charged */
         bat_character = bat60_char;
-        lcd.createChar(3, bat60_char);
+        // lcd.createChar(3, bat60_char);
         Serial.println("CH=60prc;");
+        lcd.setCursor(15,1);
         lcd.write(byte(3));
       } 
       else if (percent > 60 && percent <= 80)
@@ -511,7 +484,8 @@ void loop(void) {
         /* show 80% charged */
         bat_character = bat80_char;
         Serial.println("CH=80prc;");
-        lcd.createChar(4, bat80_char);
+        // lcd.createChar(4, bat80_char);
+        lcd.setCursor(15,1);
         lcd.write(byte(4));
       }
       else if (percent > 80 && percent <= 100)
@@ -519,7 +493,8 @@ void loop(void) {
         /* show 100% charged */
         bat_character = bat100_char;
         Serial.println("CH=100prc;");
-        lcd.createChar(5, bat100_char);
+        // lcd.createChar(5, bat100_char);
+        lcd.setCursor(15,1);
         lcd.write(byte(5));
       }
       else
@@ -527,10 +502,69 @@ void loop(void) {
        /* show warn about possible errors */
        // bat_character = is_not_chg_warn;
        Serial.println("CH=NO_DATA_0;");
+       lcd.setCursor(15,1);
        lcd.print("?"); // TODO: error 3 here, too
        //show error on status led // how to show error properly (because this code is within interrupt now)
        // digitalWrite(STATUS_LED_PIN, LOW);         
        // TODO: show "!" near bat character on lcd
       }
   } 
+  if (addr_counter == 0) 
+  {
+    // Print 1st temperature to LCD
+    Serial.print("T1=");
+    Serial.print(celsius);
+    Serial.print("C;");
+    Serial.println();
+
+    lcd.setCursor(0,0);
+    lcd.print("     ");
+    lcd.setCursor(0,0);
+    lcd.print(cel);
+    if (cel > HIGER_TEMP) 
+    {
+      lcd.print("C!");
+      //error 5
+    }
+    else 
+    {
+      lcd.print("C");
+      // error is gone
+    }
+  }
+  else if (addr_counter == 1)
+  {
+    // Print 2nd temperature to LCD
+    Serial.print("T2=");
+    Serial.print(celsius);
+    Serial.print("C;");
+    Serial.println();
+    lcd.setCursor(0,1);
+    lcd.print("     ");
+    lcd.setCursor(0,1);
+    lcd.print(cel);
+    lcd.print("C ");
+  } else {
+
+  }
+  
+  addr_counter++;
+  if (addr_counter > NUM_SENSORS - 1)
+  {
+    addr_counter = 0;
+  }
+  delay(200);
+  lcd.setCursor(5,0);
+  lcd.print("     ");
+  lcd.setCursor(5,0);
+  lcd.print((int)purePressure);
+  lcd.print("p ");
+
+  // char s[5];
+  lcd.setCursor(5,1);
+  lcd.print("     ");
+  lcd.setCursor(5,1);
+  // dtostrf(pureVoltage, 5, 1, s); 
+  lcd.print(pureVoltage);
+  lcd.print("V");
 }
