@@ -296,8 +296,8 @@ void loop(void) {
   // Serial.print(celsius);
   // Serial.print("C;");
   // Serial.println();
-  Serial.println(mode);
-  Serial.println(percent);
+  // Serial.println(mode);
+  // Serial.println(percent);
   /* TODO: ! ONLY if other methods will not work !
   in different iterations of loop check the addr var
   and print to different places on lcd by addr value */
@@ -386,13 +386,13 @@ void loop(void) {
   if (addr_counter == 0) { // show data only in one of cycles (because of 1wire sensors, which send data only from one sensor in 1 iteration of loop)
     Serial.print("P=");
     Serial.print(purePressure);
-    Serial.print("psi;");
+    Serial.print(";");
     Serial.println();
     delay(200);
     // Voltage - print here
     Serial.print("V=");
     Serial.print(pureVoltage);
-    Serial.print("V;");
+    Serial.print(";");
     Serial.println();
     delay(200);
 
@@ -427,81 +427,62 @@ void loop(void) {
   // lcd.write(byte(4));
       if (mode == 1) {
         uint8_t chg_symbol = is_chg_char;
-        Serial.println("CHG=TRUE;");
+        Serial.println("CHG=1;");
         // TODO: show chg character on lcd
         // lcd.createChar(6, is_chg_char);
         lcd.setCursor(14,1);
         lcd.write(byte(6));
       } else {
-        Serial.println("CHG=FALSE;");
+        Serial.println("CHG=0;");
         lcd.setCursor(14,1);
         lcd.print(" ");
         // TODO: hide chg character on lcd
       }
-
-      percent = 23;//temp line
-    
+      
+      Serial.print("CH=");
+      Serial.print(percent);
+      Serial.print(";");
+      Serial.println();
       // if by ranges of percent value
       if (percent > 0 && percent <= 7)
       {
         /* show 0% charged */
-        bat_character = bat0_char;
-        Serial.println("CH=7prc;");
-        // lcd.createChar(0, bat0_char);
-        // lcd.print(bat_character);
         lcd.setCursor(15,1);
         lcd.write(byte(0));
       }
       else if (percent > 7 && percent <= 20)
       {
         /* show 20% charged */
-        bat_character = bat20_char;
-        Serial.println("CH=20prc;");
-        // lcd.createChar(1, bat20_char);
         lcd.setCursor(15,1);
         lcd.write(byte(1));
       }
       else if (percent > 20 && percent <= 40)
       {
         /* show 40% charged */
-        bat_character = bat40_char;
-        // lcd.createChar(2, bat40_char);
-        Serial.println("CH=40prc;");
         lcd.setCursor(15,1);
         lcd.write(byte(2));
       }
       else if (percent > 40 && percent <= 60)
       {
         /* show 60% charged */
-        bat_character = bat60_char;
-        // lcd.createChar(3, bat60_char);
-        Serial.println("CH=60prc;");
         lcd.setCursor(15,1);
         lcd.write(byte(3));
       } 
       else if (percent > 60 && percent <= 80)
       {
         /* show 80% charged */
-        bat_character = bat80_char;
-        Serial.println("CH=80prc;");
-        // lcd.createChar(4, bat80_char);
         lcd.setCursor(15,1);
         lcd.write(byte(4));
       }
       else if (percent > 80 && percent <= 100)
       {
         /* show 100% charged */
-        bat_character = bat100_char;
-        Serial.println("CH=100prc;");
-        // lcd.createChar(5, bat100_char);
         lcd.setCursor(15,1);
         lcd.write(byte(5));
       }
       else
       {
        /* show warn about possible errors */
-       // bat_character = is_not_chg_warn;
-       Serial.println("CH=NO_DATA_0;");
        lcd.setCursor(15,1);
        lcd.print("?"); // TODO: error 3 here, too
        //show error on status led // how to show error properly (because this code is within interrupt now)
@@ -514,7 +495,7 @@ void loop(void) {
     // Print 1st temperature to LCD
     Serial.print("T1=");
     Serial.print(celsius);
-    Serial.print("C;");
+    Serial.print(";");
     Serial.println();
 
     lcd.setCursor(0,0);
@@ -537,7 +518,7 @@ void loop(void) {
     // Print 2nd temperature to LCD
     Serial.print("T2=");
     Serial.print(celsius);
-    Serial.print("C;");
+    Serial.print(";");
     Serial.println();
     lcd.setCursor(0,1);
     lcd.print("     ");
