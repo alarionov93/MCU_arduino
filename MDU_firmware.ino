@@ -274,10 +274,10 @@ void loop(void) {
   celsius = (float)raw / 16.0;
   int cel = (int) celsius; //int value to print on LCD !
 //  fahrenheit = celsius * 1.8 + 32.0;
-  Serial.print("T=");
-  Serial.print(celsius);
-  Serial.print("C;");
-  Serial.println();
+  // Serial.print("T=");
+  // Serial.print(celsius);
+  // Serial.print("C;");
+  // Serial.println();
   Serial.println(mode);
   Serial.println(percent);
   /* TODO: ! ONLY if other methods will not work !
@@ -339,6 +339,11 @@ void loop(void) {
   {
 //    Serial.println("1st;");
     // Print 1st temperature to LCD
+    Serial.print("T1=");
+    Serial.print(celsius);
+    Serial.print("C;");
+    Serial.println();
+
     lcd.setCursor(0,0);
     lcd.print("     "); // clear the place for temperature
     lcd.print(cel);
@@ -360,6 +365,10 @@ void loop(void) {
   {
 //    Serial.println("2nd;");
     // Print 2nd temperature to LCD
+    Serial.print("T2=");
+    Serial.print(celsius);
+    Serial.print("C;");
+    Serial.println();
     lcd.setCursor(0,1);
     lcd.print(cel);
     lcd.print("C ");
