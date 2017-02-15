@@ -190,35 +190,41 @@ void loop(void) {
     return;
   }
 
-  lcd.setCursor(ERR_LCD_IDX,0); // error 0 is gone
-  lcd.print("  ");
   if (OneWire::crc8(addr, 7) != addr[7]) {
       /* TODO: say about problem on lcd and status led */
       Serial.println("CRC_NOT_VALID;");
       digitalWrite(STATUS_LED_PIN, LOW);
       lcd.setCursor(ERR_LCD_IDX,0);// error 0
-      lcd.print("#");
-      lcd.print(0);
+      lcd.write('#');
+      lcd.write('0');
       delay(200);
       return;
+  } else {
+      lcd.setCursor(ERR_LCD_IDX,0); // error 0 is gone
+      lcd.print("  ");
   }
 //  Serial.println();
 
  
   // the first ROM byte indicates which chip
-  lcd.setCursor(ERR_LCD_IDX,0); // error 1 is gone
-  lcd.print("  ");
+  
   switch (addr[0]) {
     case 0x10:
 //      Serial.println("  Chip = DS18S20");  // or old DS1820
+      lcd.setCursor(ERR_LCD_IDX,0); // error 1 is gone
+      lcd.print("  ");
       type_s = 1;
       break;
     case 0x28:
 //      Serial.println("  Chip = DS18B20");
+      lcd.setCursor(ERR_LCD_IDX,0); // error 1 is gone
+      lcd.print("  ");
       type_s = 0;
       break;
     case 0x22:
 //      Serial.println("  Chip = DS1822");
+      lcd.setCursor(ERR_LCD_IDX,0); // error 1 is gone
+      lcd.print("  ");
       type_s = 0;
       break;
     default:
@@ -226,8 +232,8 @@ void loop(void) {
       Serial.println("DEVICE_ERROR;");
       digitalWrite(STATUS_LED_PIN, LOW); // error 1
       lcd.setCursor(ERR_LCD_IDX,0);
-      lcd.print("#");
-      lcd.print(1);
+      lcd.write('#');
+      lcd.write('1');
       delay(200);
       return;
   } 
@@ -334,6 +340,7 @@ void loop(void) {
 //    Serial.println("1st;");
     // Print 1st temperature to LCD
     lcd.setCursor(0,0);
+    lcd.print("     "); // clear the place for temperature
     lcd.print(cel);
     if (cel > HIGER_TEMP) 
     {
@@ -393,8 +400,8 @@ void loop(void) {
     /* TODO: say about problem on lcd */
     /* TODO: in this case if pressure is LOWER than listed in service manual */
     lcd.setCursor(ERR_LCD_IDX,0); // error 2
-    lcd.print("#");
-    lcd.print(2);
+    lcd.write('#');
+    lcd.write('2');
     purePressure = 0.0;
 
   }
