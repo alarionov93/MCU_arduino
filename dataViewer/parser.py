@@ -18,7 +18,7 @@ else:
     last_measure_id = 0
 
 try:
-    with open('mdu.log', "r") as f:
+    with open('mdu.debug.new.log', "r") as f:
         import pdb
         pure_data = f.read()
         splitted_data = pure_data.split('NA;')
@@ -50,7 +50,7 @@ try:
                 for s in splitted:
                     if len(s) < 1:
                         splitted.remove(s)
-                if len(splitted) != 6:
+                if len(splitted) < 6:
                     print("error in data!\n")
                 else:
                     # print(splitted)
