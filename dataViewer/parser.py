@@ -5,6 +5,7 @@ import sys
 
 # TODO: create flask app with database and load data into it
 
+DEFAULT_LOG_FILENAME = 'mdu.log'
 cursor = models.db.execute_sql('SELECT MAX(measure_id) FROM measures;')
 res = cursor.fetchone()
 print(res)
@@ -18,7 +19,7 @@ else:
     last_measure_id = 0
 
 try:
-    with open('mdu.debug.new.log', "r") as f:
+    with open(DEFAULT_LOG_FILENAME, "r") as f:
         import pdb
         pure_data = f.read()
         splitted_data = pure_data.split('NA;')

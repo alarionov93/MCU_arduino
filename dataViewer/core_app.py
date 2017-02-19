@@ -24,13 +24,16 @@ def index():
 
     return render_template('index.html', measures_ids=cutted)
 
-@app.route('/get_temperatures')
-def get_temperatures():
-    temperatures = models.TemperatureOut.select().order_by(models.TemperatureOut.created_at)
-    temp_lst = []
-    for t in temperatures:
-        temp_lst.append(t.to_list())
-    return jsonify(temp_lst)
+@app.route('/get_tracker_chg_info/<int:m_id>')
+def get_gps_chg_info(m_id):
+    if m_id is None:
+        raise AttributeError("Measure id is None")
+    data = models.Measures.select().where(models.Measures.measure_id == int(m_id)).order_by(models.Measures.created_at)
+    data_lst = []
+    data_lst.append(['Id', 'Charging Percent', 'Charging Status'])
+    for d in data:
+        data_lst.append(d.tracker_chg_info_to_list())
+    return jsonify(data_lst)
 
 @app.route('/get_measures/<int:m_id>')
 def get_measures(m_id):

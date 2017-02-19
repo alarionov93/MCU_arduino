@@ -5,6 +5,9 @@
             <option value="{{ v }}" name="{{ v }}">Measure {{ v }}</option>
         {% endfor %}
     </select>
+    <button onclick="getTrackerData()">Get tracker charging info</button>
     <!--Div that will hold the pie chart-->
-    <div id="chart_div"></div>
+    <div id="main_chart_div"></div>
+    <div id="tracker_chart_div"></div>
+
 {% endblock %}

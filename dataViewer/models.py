@@ -68,6 +68,13 @@ class Measures(BaseModel):
     gps_charge_val = IntegerField(unique=False, null=True, default=0)
     created_at = DateTimeField(default=datetime.datetime.now)
 
+    def tracker_chg_info_to_list(self):
+        return [
+            self.id,
+            self.gps_charge_stat,
+            self.gps_charge_val
+        ]
+
     def to_list(self):
         return [
             self.id,
