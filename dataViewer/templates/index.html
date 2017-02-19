@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block content %}
+    <select name="measure" id="measure">
+        {% for v in measures_ids %} <!-- TODO: only last N measures -->
+            <option value="{{ v }}" name="{{ v }}">Measure {{ v }}</option>
+        {% endfor %}
+    </select>
+    <!--Div that will hold the pie chart-->
+    <div id="chart_div"></div>
+{% endblock %}
