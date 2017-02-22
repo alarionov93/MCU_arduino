@@ -1,7 +1,6 @@
-#include <LiquidCrystal.h>
-
-#include <EEPROM.h>
 #include <OneWire.h>
+#include <EEPROM.h>
+#include <LiquidCrystal.h>
 //#include <SoftwareSerial.h>
 #include "HD44780CustomChars.h"
 
@@ -9,8 +8,8 @@
 #define NUM_SENSORS         2
 // #define SS_RX               12
 // #define SS_TX               13
-#define HIGHER_TEMP          100 // TODO: watch in Transalp specification !!
-#define LOWER_TEMP          4
+#define HIGHER_TEMP         100 // TODO: watch in Transalp specification !!
+#define LOWER_TEMP          7
 #define HIGHER_VOLTAGE      14.1
 #define LOWER_VOLTAGE       11.7
 #define SIG_PIN             7
@@ -39,9 +38,9 @@
 #define LOW_OUT_TEMP_ERR    7
 
 #define ERR_VECT_LEN        9
-#define ERR_LCD_IDX         13 //index of err message on lcd
+#define ERR_LCD_IDX         12 //index of err message on lcd
 
-uint8_t errors[ERR_VECT_LEN];
+int errors[ERR_VECT_LEN];
 
 OneWire  ds(ONE_WIRE_BUS);  // on pin 11
 // SoftwareSerial SoftSerial(SS_RX, SS_TX); // RX, TX
@@ -49,6 +48,13 @@ LiquidCrystal lcd(9,6,5,4,3,2);
 
 /* TODO: set up status variable and write 1 on STATUS_LED_PIN if alright, and 0 if NOT !!
  Thus, every place with error should turn off status led */
+
+/* TODO: move tracker chg info symbol on lcd from 15,1 to 11,1,
+cast voltage to .0 with 1 sign after decimal point, 
+move errors to bottom row, fill them from right corner of LCD,
+and show percents or/and visual symbols (e.g. like in HD custom chars, but all bits are 1)
+in the right corner of top row!
+*/
 
 int brightness;
 char buff[50]="";
@@ -157,8 +163,11 @@ void set_error_code(int error_id) {
   errors[error_id] = 1;
 }
 
-void unset_error_code(int error_id) {
-  errors[error_id] = 0;
+void unset_errors() {
+  for (int i = 0; i < ERR_VECT_LEN; i++)
+  {
+      errors[i] = 0;   
+  }
 }
 
 bool is_errors() {
@@ -187,25 +196,28 @@ void lcd_print_errors() {
     // clear prev errors
     int counter = 0;
     lcd.setCursor(ERR_LCD_IDX, 0);
-    lcd.print("   ");
+    int count_symbols = 16 - ERR_LCD_IDX; //count of places on lcd for display errors
+    for (int j = 0; j < count_symbols; j++) {
+      lcd.print(" "); 
+    }
     // print new errors
     lcd.setCursor(ERR_LCD_IDX, 0);
     if (is_errors() == true)
     {
         for (int i = 0; i < ERR_VECT_LEN; i++)
         {
-            if (counter > 2)
-            {
-                lcd.print(">");
-                break;
-            }
             if (errors[i] == 1)
             {
                 lcd.print(i);
+                counter++;
             }
-            counter++;
+        }
+        if (counter >= count_symbols) {
+          lcd.setCursor(15, 0);
+          lcd.print(">");
         }
     }
+    unset_errors();
 }
 
 void setup(void) {
@@ -593,6 +605,11 @@ void loop(void) {
   } else {
 
   }
+
+  if(addr_counter == 0) {
+    // LCD print errors here
+    lcd_print_errors();
+  }
   
   addr_counter++;
   if (addr_counter > NUM_SENSORS - 1)
@@ -620,7 +637,4 @@ void loop(void) {
   {
       set_error_code(HIGH_VOLTAGE_ERR);
   }
-
-  // LCD print errors here
-  lcd_print_errors();
 }
