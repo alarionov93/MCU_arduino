@@ -7,28 +7,45 @@
 
 #define ONE_WIRE_BUS        11
 #define NUM_SENSORS         2
-
 // #define SS_RX               12
 // #define SS_TX               13
-#define HIGER_TEMP          100 // TODO: watch in Transalp specification !!
+#define HIGHER_TEMP          100 // TODO: watch in Transalp specification !!
+#define LOWER_TEMP          4
+#define HIGHER_VOLTAGE      14.1
+#define LOWER_VOLTAGE       11.7
 #define SIG_PIN             7
 #define BTN_DEC             8 // decrease led light on LCD
 #define LCD_LED             10
 #define STATUS_LED_PIN      12
 #define EEPROM_BRIGHT_ADDR  0
-#define ERR_LCD_IDX         14 //index of err message on lcd
+
+/* ERROR CODES:
+0 - problem with 1wire CRC (checksum)
+1 - problem with 1wire DEVICES ADDRESSES (wrong device)
+2 - low pressure
+3 - gps bat get level
+4 - high voltage
+5 - low voltage
+6 - high engine temperature
+7 - low outside temperature
+*/
+#define CRC_ERR             0
+#define WRONG_DEV_ERR       1
+#define LOW_PRESSURE_ERR    2
+#define TRACKER_CHG_ERR     3
+#define HIGH_VOLTAGE_ERR    4
+#define LOW_VOLTAGE_ERR     5
+#define HIGH_ENG_TEMP_ERR   6
+#define LOW_OUT_TEMP_ERR    7
+
+#define ERR_VECT_LEN        9
+#define ERR_LCD_IDX         13 //index of err message on lcd
+
+uint8_t errors[ERR_VECT_LEN];
 
 OneWire  ds(ONE_WIRE_BUS);  // on pin 11
 // SoftwareSerial SoftSerial(SS_RX, SS_TX); // RX, TX
 LiquidCrystal lcd(9,6,5,4,3,2);
-/* ERROR CODES:
-0 - problem with 1wire CRC
-1 - problem with 1wire DEVICES ADDRESSES
-2 - low pressure
-3 - gps bat get level
-4 - high voltage
-5 - high temperature
- */
 
 /* TODO: set up status variable and write 1 on STATUS_LED_PIN if alright, and 0 if NOT !!
  Thus, every place with error should turn off status led */
@@ -111,8 +128,7 @@ ISR (PCINT2_vect) // handle pin change interrupt for D0 to D7 here
     // be no sign of data inside ISR, 
     // call lcd.print() right HERE !
     if (strstr(buff, "+CBC") != NULL) {
-        lcd.setCursor(ERR_LCD_IDX,0); // error 3 is gone
-        lcd.print("  ");
+        // error 3 is gone
         pch = strtok(buff, ":");
         strcpy(mode_str, strtok(NULL, ","));
         strcpy(percent_str, strtok(NULL, ","));
@@ -124,10 +140,8 @@ ISR (PCINT2_vect) // handle pin change interrupt for D0 to D7 here
     } else {
       //Serial.println("CH=NO_DATA_1;");
       /* TODO: say about problem on lcd */
-      // digitalWrite(STATUS_LED_PIN, LOW); // error 3
-      // lcd.setCursor(ERR_LCD_IDX,0);
-      // lcd.print("#");
-      // lcd.print(3); // TODO: causes an error with empty lcd, FIX IT!@
+      // digitalWrite(STATUS_LED_PIN, LOW); // error TRACKER_CHG_ERR
+      // set_error_code(TRACKER_CHG_ERR);
     }
     interrupts();
 }
@@ -139,6 +153,26 @@ void print_custom_char(int idx, int col, int row, uint8_t representation) {
   lcd.write(idx);
 }
 
+void set_error_code(int error_id) {
+  errors[error_id] = 1;
+}
+
+void unset_error_code(int error_id) {
+  errors[error_id] = 0;
+}
+
+bool is_errors() {
+  bool is_err = false;
+  for (int i = 0; i < ERR_VECT_LEN; i++)
+  {
+      if (errors[i] == 1)
+      {
+          is_err = true;
+      }
+  }
+  return is_err;
+}
+
 void print_data(int length, int col, int row, uint8_t data[10]) {
   lcd.setCursor(col, row);
   for (int i = 0; i < length; i++)
@@ -147,6 +181,31 @@ void print_data(int length, int col, int row, uint8_t data[10]) {
   }
   lcd.setCursor(col, row);
   // lcd.print(idx);
+}
+
+void lcd_print_errors() {
+    // clear prev errors
+    int counter = 0;
+    lcd.setCursor(ERR_LCD_IDX, 0);
+    lcd.print("   ");
+    // print new errors
+    lcd.setCursor(ERR_LCD_IDX, 0);
+    if (is_errors() == true)
+    {
+        for (int i = 0; i < ERR_VECT_LEN; i++)
+        {
+            if (counter > 2)
+            {
+                lcd.print(">");
+                break;
+            }
+            if (errors[i] == 1)
+            {
+                lcd.print(i);
+            }
+            counter++;
+        }
+    }
 }
 
 void setup(void) {
@@ -185,7 +244,7 @@ void setup(void) {
 }
 
 void loop(void) {
-  digitalWrite(13, LOW);
+  digitalWrite(13, LOW); // after interrupt
   byte i;
   byte present = 0;
   byte type_s;
@@ -212,10 +271,8 @@ void loop(void) {
       /* TODO: say about problem on lcd and status led */
       Serial.println("CRC_NOT_VALID;");
       digitalWrite(STATUS_LED_PIN, LOW);
-      // lcd.setCursor(ERR_LCD_IDX,0);// error 0
-      // lcd.write('#');
-      // lcd.write('0');
-      delay(200);
+      //error CRC_ERR
+      set_error_code(CRC_ERR);
       return;
   } else {
       // lcd.setCursor(ERR_LCD_IDX,0); // error 0 is gone
@@ -248,10 +305,8 @@ void loop(void) {
     default:
       /* TODO: say about problem on lcd and status led*/
       Serial.println("DEVICE_ERROR;");
-      digitalWrite(STATUS_LED_PIN, LOW); // error 1
-      // lcd.setCursor(ERR_LCD_IDX,0);
-      // lcd.write('#');
-      // lcd.write('1');
+      digitalWrite(STATUS_LED_PIN, LOW); // error WRONG_DEV_ERR
+      set_error_code(WRONG_DEV_ERR);
       delay(200);
       return;
   } 
@@ -377,9 +432,7 @@ void loop(void) {
   } else {
     /* TODO: say about problem on lcd */
     /* TODO: in this case if pressure is LOWER than listed in service manual */
-    // lcd.setCursor(ERR_LCD_IDX,0); // error 2
-    // lcd.write('#');
-    // lcd.write('2');
+    set_error_code(LOW_PRESSURE_ERR);
     purePressure = 0.0;
 
   }
@@ -488,6 +541,7 @@ void loop(void) {
        //show error on status led // how to show error properly (because this code is within interrupt now)
        // digitalWrite(STATUS_LED_PIN, LOW);         
        // TODO: show "!" near bat character on lcd
+       // set_error_code(TRACKER_CHG_ERR);
       }
   } 
   if (addr_counter == 0) 
@@ -502,10 +556,11 @@ void loop(void) {
     lcd.print("     ");
     lcd.setCursor(0,0);
     lcd.print(cel);
-    if (cel > HIGER_TEMP) 
+    if (cel > HIGHER_TEMP) 
     {
       lcd.print("C!");
-      //error 5
+      //error HIGH_ENG_TEMP_ERR
+      set_error_code(HIGH_ENG_TEMP_ERR);
     }
     else 
     {
@@ -524,7 +579,17 @@ void loop(void) {
     lcd.print("     ");
     lcd.setCursor(0,1);
     lcd.print(cel);
-    lcd.print("C ");
+    if (cel < LOWER_TEMP) 
+    {
+      lcd.print("C!");
+      //error LOW_OUT_TEMP_ERR
+      set_error_code(LOW_OUT_TEMP_ERR);
+    }
+    else 
+    {
+      lcd.print("C");
+      // error is gone
+    }
   } else {
 
   }
@@ -548,4 +613,14 @@ void loop(void) {
   // dtostrf(pureVoltage, 5, 1, s); 
   lcd.print(pureVoltage);
   lcd.print("V");
+  if (pureVoltage < 11.5)
+  {
+      set_error_code(LOW_VOLTAGE_ERR);
+  } else if (pureVoltage > 14.1)
+  {
+      set_error_code(HIGH_VOLTAGE_ERR);
+  }
+
+  // LCD print errors here
+  lcd_print_errors();
 }
