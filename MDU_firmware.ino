@@ -17,6 +17,7 @@
 #define LCD_LED             10
 #define STATUS_LED_PIN      12
 #define EEPROM_BRIGHT_ADDR  0
+#define GPS_LCD_IDX         11
 
 /* ERROR CODES:
 0 - problem with 1wire CRC (checksum)
@@ -47,11 +48,12 @@ OneWire  ds(ONE_WIRE_BUS);  // on pin 11
 LiquidCrystal lcd(9,6,5,4,3,2);
 
 /* TODO: set up status variable and write 1 on STATUS_LED_PIN if alright, and 0 if NOT !!
- Thus, every place with error should turn off status led */
+ Thus, every place with error should turn off status led (only equipment errors, e.g. low pressure or hi temp is not this case)*/
 
-/* TODO: move tracker chg info symbol on lcd from 15,1 to 11,1,
-cast voltage to .0 with 1 sign after decimal point, 
-move errors to bottom row, fill them from right corner of LCD,
+/* TODO: + move tracker chg info symbol on lcd from 15,1 to 11,1,
++ cast voltage to .0 with 1 sign after decimal point, 
++ move errors to bottom row,
+fill them from right corner of LCD, (!!!)
 and show percents or/and visual symbols (e.g. like in HD custom chars, but all bits are 1)
 in the right corner of top row!
 */
@@ -195,13 +197,13 @@ void print_data(int length, int col, int row, uint8_t data[10]) {
 void lcd_print_errors() {
     // clear prev errors
     int counter = 0;
-    lcd.setCursor(ERR_LCD_IDX, 0);
+    lcd.setCursor(ERR_LCD_IDX, 1);
     int count_symbols = 16 - ERR_LCD_IDX; //count of places on lcd for display errors
     for (int j = 0; j < count_symbols; j++) {
       lcd.print(" "); 
     }
     // print new errors
-    lcd.setCursor(ERR_LCD_IDX, 0);
+    lcd.setCursor(ERR_LCD_IDX, 1);
     if (is_errors() == true)
     {
         for (int i = 0; i < ERR_VECT_LEN; i++)
@@ -213,7 +215,7 @@ void lcd_print_errors() {
             }
         }
         if (counter >= count_symbols) {
-          lcd.setCursor(15, 0);
+          lcd.setCursor(15, 1);
           lcd.print(">");
         }
     }
@@ -427,6 +429,7 @@ void loop(void) {
   // Convert the analog reading (which goes from 0 - 1023) to a voltage (0 - 5V):
   float voltageValue = voltageSensorValue * (5.0 / 1023.0);
   float pureVoltage = voltageValue * 4;
+  String pureVoltageStr = String(pureVoltage, 1);
   // pressure conversion here
   float pressureValue = pressureSensorValue * (150.0 / 1023.0);
   float purePressure;
@@ -512,43 +515,43 @@ void loop(void) {
       if (percent > 0 && percent <= 7)
       {
         /* show 0% charged */
-        lcd.setCursor(15,1);
+        lcd.setCursor(GPS_LCD_IDX,1);
         lcd.write(byte(0));
       }
       else if (percent > 7 && percent <= 20)
       {
         /* show 20% charged */
-        lcd.setCursor(15,1);
+        lcd.setCursor(GPS_LCD_IDX,1);
         lcd.write(byte(1));
       }
       else if (percent > 20 && percent <= 40)
       {
         /* show 40% charged */
-        lcd.setCursor(15,1);
+        lcd.setCursor(GPS_LCD_IDX,1);
         lcd.write(byte(2));
       }
       else if (percent > 40 && percent <= 60)
       {
         /* show 60% charged */
-        lcd.setCursor(15,1);
+        lcd.setCursor(GPS_LCD_IDX,1);
         lcd.write(byte(3));
       } 
       else if (percent > 60 && percent <= 80)
       {
         /* show 80% charged */
-        lcd.setCursor(15,1);
+        lcd.setCursor(GPS_LCD_IDX,1);
         lcd.write(byte(4));
       }
       else if (percent > 80 && percent <= 100)
       {
         /* show 100% charged */
-        lcd.setCursor(15,1);
+        lcd.setCursor(GPS_LCD_IDX,1);
         lcd.write(byte(5));
       }
       else
       {
        /* show warn about possible errors */
-       lcd.setCursor(15,1);
+       lcd.setCursor(GPS_LCD_IDX,1);
        lcd.print("?"); // TODO: error 3 here, too
        //show error on status led // how to show error properly (because this code is within interrupt now)
        // digitalWrite(STATUS_LED_PIN, LOW);         
@@ -628,7 +631,7 @@ void loop(void) {
   lcd.print("     ");
   lcd.setCursor(5,1);
   // dtostrf(pureVoltage, 5, 1, s); 
-  lcd.print(pureVoltage);
+  lcd.print(pureVoltageStr);
   lcd.print("V");
   if (pureVoltage < 11.5)
   {
