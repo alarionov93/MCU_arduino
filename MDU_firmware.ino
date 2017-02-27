@@ -8,16 +8,18 @@
 #define NUM_SENSORS         2
 // #define SS_RX               12
 // #define SS_TX               13
-#define HIGHER_TEMP         100 // TODO: watch in Transalp specification !!
-#define LOWER_TEMP          7
-#define HIGHER_VOLTAGE      14.1
-#define LOWER_VOLTAGE       11.7
-#define SIG_PIN             7
+#define HIGHER_TEMP         100 // C TODO: watch in Transalp specification !! ? 102C -> fan is on // not listed in spec
+#define LOWER_TEMP          7 // C
+#define HIGHER_VOLTAGE      14.1 // V
+#define LOWER_VOLTAGE       11.7 // V
+#define LOWER_PRESSURE      19 // PSI
+#define SIG_PIN             7 // interrupt by rising signal on this pin (for getting data from tracker)
 #define BTN_DEC             8 // decrease led light on LCD
-#define LCD_LED             10
-#define STATUS_LED_PIN      12
-#define EEPROM_BRIGHT_ADDR  0
-#define GPS_LCD_IDX         11
+#define LCD_LED             10 // backlight of an lcd
+#define STATUS_LED_PIN      12 // indicates no errors when on
+#define LOW_OIL_PRESSURE_LED_PIN 13 //indicates low pressure
+#define EEPROM_BRIGHT_ADDR  0 // addr for storing brightness value
+#define GPS_LCD_IDX         11 //index of colomn to show gps tracker battery status
 
 /* ERROR CODES:
 0 - problem with 1wire CRC (checksum)
@@ -38,13 +40,12 @@
 #define HIGH_ENG_TEMP_ERR   6
 #define LOW_OUT_TEMP_ERR    7
 
-#define ERR_VECT_LEN        9
-#define ERR_LCD_IDX         12 //index of err message on lcd
+#define ERR_VECT_LEN        9 // length of errors array
+#define ERR_LCD_IDX         12 // index of err message on lcd
 
-int errors[ERR_VECT_LEN];
+int errors[ERR_VECT_LEN]; // for storing errors by its codes (index in this array is code of an err, value is 1 or 0)
 
-OneWire  ds(ONE_WIRE_BUS);  // on pin 11
-// SoftwareSerial SoftSerial(SS_RX, SS_TX); // RX, TX
+OneWire  ds(ONE_WIRE_BUS);
 LiquidCrystal lcd(9,6,5,4,3,2);
 
 /* TODO: set up status variable and write 1 on STATUS_LED_PIN if alright, and 0 if NOT !!
@@ -143,8 +144,6 @@ ISR (PCINT2_vect) // handle pin change interrupt for D0 to D7 here
 //        strcpy(voltage, strtok(NULL, "\r"));
         mode = atoi(mode_str);
         percent = atoi(percent_str);
-
-        digitalWrite(13, HIGH);
     } else {
       //Serial.println("CH=NO_DATA_1;");
       /* TODO: say about problem on lcd */
@@ -232,8 +231,7 @@ void setup(void) {
   pinMode(BTN_DEC, INPUT);
   pinMode(LCD_LED, OUTPUT);
   pinMode(STATUS_LED_PIN, OUTPUT);
-  pinMode(13, OUTPUT);
-  digitalWrite(13, LOW);
+  pinMode(LOW_OIL_PRESSURE_LED_PIN, OUTPUT);
   digitalWrite(STATUS_LED_PIN, HIGH); //show that everything is alright
 
   // get brightness stored in EEPROM
@@ -258,7 +256,6 @@ void setup(void) {
 }
 
 void loop(void) {
-  digitalWrite(13, LOW); // after interrupt
   byte i;
   byte present = 0;
   byte type_s;
@@ -436,22 +433,36 @@ void loop(void) {
   float middlePoint = 819/2;// because 0.5v - 0psi, but 102 after ADC
   //and 4.5v is 150psi but 921 after ADC prescaling, so full range is 819
 
-  if (pressureSensorValue > 923 && pressureSensorValue <= 1023) {
+  if (pressureSensorValue > 923 && pressureSensorValue <= 1023) 
+  {
     purePressure = 150.0;
-  } else if (pressureSensorValue > 102 && pressureSensorValue <= 923) {
-    if (pressureSensorValue >= middlePoint) {
-      purePressure = pressureValue + pressureValue * 0.11;
-    } else if (pressureSensorValue < middlePoint) {
-      purePressure = pressureValue - pressureValue * 0.11;
+  } else if (pressureSensorValue > 102 && pressureSensorValue <= 923) 
+  {
+    if (pressureSensorValue >= middlePoint)
+    {
+      purePressure = pressureValue + pressureValue * 0.54;
+    } else if (pressureSensorValue < middlePoint)
+    {
+      purePressure = pressureValue - pressureValue * 0.54;
     }
-  } else {
-    /* TODO: say about problem on lcd */
-    /* TODO: in this case if pressure is LOWER than listed in service manual */
-    set_error_code(LOW_PRESSURE_ERR);
+  } 
+  else
+  {
     purePressure = 0.0;
-
   }
-  if (addr_counter == 0) { // show data only in one of cycles (because of 1wire sensors, which send data only from one sensor in 1 iteration of loop)
+  if (purePressure < LOWER_PRESSURE)
+  {
+    digitalWrite(LOW_OIL_PRESSURE_LED_PIN, HIGH);
+    set_error_code(LOW_PRESSURE_ERR);
+  }
+  else
+  {
+    digitalWrite(LOW_OIL_PRESSURE_LED_PIN, LOW);
+  }
+  if (addr_counter == 0)
+  { 
+    // show data only in one of cycles (because of 1wire sensors,
+    // which send data only from one sensor in 1 iteration of loop)
     Serial.print("P=");
     Serial.print(purePressure);
     Serial.print(";");
@@ -464,48 +475,22 @@ void loop(void) {
     Serial.println();
     delay(200);
 
-    // Print all data to LCD below
-    // TODO: replace Serial.print with print_custom_char !!
-
-    // GPS tracker battery info interpretating below
-    // this section should be in ISR. This is fucking shit, but the only solution I have:-/
-//        if (mode == 0 && percent < 50)
-//        {
-//          /* TODO: should warn about possible errors
-//          /* maybe there is trouble with charge circuit or connection */
-//          bat_character = is_not_chg_warn;
-//          Serial.println("Warning! No data, mode and percent is 0.");
-//        }
-        // TODO: move the section which lies below AWAY from interrupt, now we have data inside of ISR!!
-    
-      // lcd.createChar(0, bat0_char);
-      // lcd.createChar(1, bat20_char);
-      // lcd.createChar(2, bat40_char);
-      // lcd.createChar(3, bat60_char);
-      // lcd.createChar(4, bat80_char);
-      // lcd.createChar(5, bat100_char);
+    if (mode == 1) 
+    {
+      uint8_t chg_symbol = is_chg_char;
+      Serial.println("CHG=1;");
+      // TODO: show chg character on lcd
       // lcd.createChar(6, is_chg_char);
-      // lcd.createChar(7, is_not_chg_warn);
-      // lcd.setCursor(12,1);
-      // lcd.write(6);
-      // lcd.clear();
-
-  // lcd.createChar(4, bat80_char);
-  // lcd.setCursor(16,1);
-  // lcd.write(byte(4));
-      if (mode == 1) {
-        uint8_t chg_symbol = is_chg_char;
-        Serial.println("CHG=1;");
-        // TODO: show chg character on lcd
-        // lcd.createChar(6, is_chg_char);
-        lcd.setCursor(14,1);
-        lcd.write(byte(6));
-      } else {
-        Serial.println("CHG=0;");
-        lcd.setCursor(14,1);
-        lcd.print(" ");
-        // TODO: hide chg character on lcd
-      }
+      lcd.setCursor(14,1);
+      lcd.write(byte(6));
+    }
+    else
+    {
+      Serial.println("CHG=0;");
+      lcd.setCursor(14,1);
+      lcd.print(" ");
+      // TODO: hide chg character on lcd
+    }
       
       Serial.print("CH=");
       Serial.print(percent);
