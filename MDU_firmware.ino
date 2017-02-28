@@ -525,10 +525,10 @@ void loop(void) {
   {
     if (pressureSensorValue >= middlePoint)
     {
-      purePressure = pressureValue + pressureValue * 0.54;
+      purePressure = pressureValue + pressureValue * 0.11;
     } else if (pressureSensorValue < middlePoint)
     {
-      purePressure = pressureValue - pressureValue * 0.54;
+      purePressure = pressureValue - pressureValue * 0.11;
     }
   } 
   else
