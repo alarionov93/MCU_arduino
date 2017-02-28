@@ -39,6 +39,7 @@
 #define LOW_VOLTAGE_ERR     5
 #define HIGH_ENG_TEMP_ERR   6
 #define LOW_OUT_TEMP_ERR    7
+#define FUEL_SENSOR_ERROR   8
 
 #define ERR_VECT_LEN        9 // length of errors array
 #define ERR_LCD_IDX         12 // index of err message on lcd
@@ -421,8 +422,92 @@ void loop(void) {
 
   // get data from analog sensors here
   int pressureSensorValue = analogRead(A0);
-  //  int fuelSensorValue = analogRead(A1);
+  int fuelSensorValue = analogRead(A1);
   int voltageSensorValue = analogRead(A2);
+  // fuel sensor conversion
+  float fuelValue = fuelSensorValue * (100.0 / 1023.0);
+  int fuelPercent = (int) fuelValue;
+  int scaleValue = 0;
+  // TODO: check that final value is > 0 !!
+  if (fuelPercent <= 50)
+  {
+    scaleValue = (50 - fuelPercent) / 4;
+    fuelPercent = fuelPercent - scaleValue;
+    if (fuelPercent < 0)
+    {
+      set_error_code(8);
+    }
+  }
+  else
+  {
+    scaleValue = (fuelPercent - 50) / 4;
+    fuelPercent = fuelPercent + scaleValue;
+    if (fuelPercent > 100)
+    {
+      set_error_code(8);
+    }
+  }
+  lcd.setCursor(9,0);
+  lcd.print("       "); // 7 spaces
+  lcd.setCursor(9,0);
+
+  if (fuelPercent == 0) {
+  // TODO: warn here??
+  } else if (fuelPercent > 0 && fuelPercent <= 7)
+  {
+    // LOW FUEL WARNING
+  } else if (fuelPercent > 7 && fuelPercent <= 14)
+  {
+    lcd.write((char)255); // LOW FUEL WARNING
+  } else if (fuelPercent > 14 && fuelPercent <= 28)
+  {
+    lcd.write((char)255);
+    lcd.write((char)255);
+  } else if (fuelPercent > 28 && fuelPercent <= 42)
+  {
+    lcd.write((char)255);
+    lcd.write((char)255);
+    lcd.write((char)255);
+  } else if (fuelPercent > 42 && fuelPercent <= 56)
+  {
+    lcd.write((char)255);
+    lcd.write((char)255);
+    lcd.write((char)255);
+    lcd.write((char)255);
+  } else if (fuelPercent > 56 && fuelPercent <= 70)
+  {
+    lcd.write((char)255);
+    lcd.write((char)255);
+    lcd.write((char)255);
+    lcd.write((char)255);
+    lcd.write((char)255);
+  } else if (fuelPercent > 70 && fuelPercent <= 84)
+  {
+    lcd.write((char)255);
+    lcd.write((char)255);
+    lcd.write((char)255);
+    lcd.write((char)255);
+    lcd.write((char)255);
+    lcd.write((char)255);
+  } else if (fuelPercent > 84 && fuelPercent <= 100)
+  {
+    lcd.write((char)255);
+    lcd.write((char)255);
+    lcd.write((char)255);
+    lcd.write((char)255);
+    lcd.write((char)255);
+    lcd.write((char)255);
+    lcd.write((char)255);
+  }
+  
+  lcd.setCursor(11,0);
+  lcd.print(fuelPercent);
+  lcd.write('%');
+  if (fuelPercent > 0 && fuelPercent <=14)
+  {
+    lcd.write('!');
+    // TODO: If make a led to show low fuel?
+  }
   // Convert the analog reading (which goes from 0 - 1023) to a voltage (0 - 5V):
   float voltageValue = voltageSensorValue * (5.0 / 1023.0);
   float pureVoltage = voltageValue * 4;
@@ -606,10 +691,10 @@ void loop(void) {
   }
   delay(200);
   lcd.setCursor(5,0);
-  lcd.print("     ");
+  lcd.print("    ");
   lcd.setCursor(5,0);
   lcd.print((int)purePressure);
-  lcd.print("p ");
+  lcd.print("P");
 
   // char s[5];
   lcd.setCursor(5,1);
