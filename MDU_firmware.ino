@@ -234,6 +234,7 @@ void setup(void) {
   pinMode(STATUS_LED_PIN, OUTPUT);
   pinMode(LOW_OIL_PRESSURE_LED_PIN, OUTPUT);
   digitalWrite(STATUS_LED_PIN, HIGH); //show that everything is alright
+  digitalWrite(LOW_OIL_PRESSURE_LED_PIN, HIGH); //temporary for old pressure switch
 
   // get brightness stored in EEPROM
   noInterrupts();
@@ -535,15 +536,16 @@ void loop(void) {
   {
     purePressure = 0.0;
   }
-  if (purePressure < LOWER_PRESSURE)
-  {
-    digitalWrite(LOW_OIL_PRESSURE_LED_PIN, HIGH);
-    set_error_code(LOW_PRESSURE_ERR);
-  }
-  else
-  {
-    digitalWrite(LOW_OIL_PRESSURE_LED_PIN, LOW);
-  }
+  // Uncomment it when new pressure sensor will be set in
+  // if (purePressure < LOWER_PRESSURE)
+  // {
+  //   digitalWrite(LOW_OIL_PRESSURE_LED_PIN, HIGH);
+  //   set_error_code(LOW_PRESSURE_ERR);
+  // }
+  // else
+  // {
+  //   digitalWrite(LOW_OIL_PRESSURE_LED_PIN, LOW);
+  // }
   if (addr_counter == 0)
   { 
     // show data only in one of cycles (because of 1wire sensors,
@@ -559,6 +561,12 @@ void loop(void) {
     Serial.print(";");
     Serial.println();
     delay(200);
+    // Fuel lvl
+    Serial.print("F=");
+    Serial.print(fuelPercent);
+    Serial.print(";");
+    Serial.println();
+    delay(100);
 
     if (mode == 1) 
     {
