@@ -426,19 +426,23 @@ void loop(void) {
   int fuelSensorValue = analogRead(A1);
   int voltageSensorValue = analogRead(A2);
   // fuel sensor conversion
+  Serial.println(fuelSensorValue); //max 360, min 80
   float fuelValue = fuelSensorValue * (100.0 / 1023.0);
-  int fuelPercent = (int) fuelValue;
+  int fuelPercent = (int) fuelValue; //34-8 !
+  fuelPercent = (int) (abs(34 - fuelPercent))*3;
+  // TODO: add some value to reach 100% of fuel. Now only 82% is high value
+
   int scaleValue = 0;
   // TODO: check that final value is > 0 !!
-  if (fuelPercent <= 50)
-  {
-    scaleValue = (50 - fuelPercent) / 4;
-    fuelPercent = fuelPercent - scaleValue;
-    if (fuelPercent < 0)
-    {
-      set_error_code(8);
-    }
-  }
+  // if (fuelPercent <= 50)
+  // {
+  //   scaleValue = (50 - fuelPercent) / 4;
+  //   fuelPercent = fuelPercent - scaleValue;
+  //   if (fuelPercent < 0)
+  //   {
+  //     set_error_code(8);
+  //   }
+  // }
   // else
   // {
   //   scaleValue = (fuelPercent - 50) / 4;
