@@ -439,15 +439,15 @@ void loop(void) {
       set_error_code(8);
     }
   }
-  else
-  {
-    scaleValue = (fuelPercent - 50) / 4;
-    fuelPercent = fuelPercent + scaleValue;
-    if (fuelPercent > 100)
-    {
-      set_error_code(8);
-    }
-  }
+  // else
+  // {
+  //   scaleValue = (fuelPercent - 50) / 4;
+  //   fuelPercent = fuelPercent + scaleValue;
+  //   if (fuelPercent > 100)
+  //   {
+  //     set_error_code(8);
+  //   }
+  // }
   lcd.setCursor(9,0);
   lcd.print("       "); // 7 spaces
   lcd.setCursor(9,0);
