@@ -4,6 +4,8 @@
 //#include <SoftwareSerial.h>
 #include "HD44780CustomChars.h"
 
+// TODO: fix all measures !! Measure 10 times instead of only one !!
+
 #define ONE_WIRE_BUS        11
 #define NUM_SENSORS         2
 // #define SS_RX               12
