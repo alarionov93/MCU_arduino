@@ -89,6 +89,19 @@ void pciSetup(byte pin)
     // for pins [0:7] and [8:14] (as defined in m328p datasheet, page 92)
     PCICR  |= bit (digitalPinToPCICRbit(pin));
 }
+
+int measureAnalogValue(int pin, int count) {
+    if (count == NULL)
+    {
+      int count = 16;
+    }
+    uint16_t value = 0;
+    for (int i = 0; i < count; i++)
+    {
+      value += analogRead(pin);
+    }
+    return (int) value/count;
+}
  
 // Use one Routine to handle each group
  
@@ -424,15 +437,20 @@ void loop(void) {
 //  }
 
   // get data from analog sensors here
-  int pressureSensorValue = analogRead(A0);
-  int fuelSensorValue = analogRead(A1);
-  int voltageSensorValue = analogRead(A2);
+  // int pressureSensorValue = analogRead(A0);
+  int pressureSensorValue = measureAnalogValue(A0, NULL);
+  int fuelSensorValue = measureAnalogValue(A1, NULL);
+  int voltageSensorValue = measureAnalogValue(A2, NULL);
   // fuel sensor conversion
   Serial.println(fuelSensorValue); //max 360, min 80
   float fuelValue = fuelSensorValue * (100.0 / 1023.0);
   int fuelPercent = (int) fuelValue; //34-8 !
   fuelPercent = (int) (abs(34 - fuelPercent))*3;
-  // TODO: add some value to reach 100% of fuel. Now only 82% is high value
+  fuelPercent = fuelPercent + (int) fuelPercent/5.3;
+  // TODO: test this line on motorcycle !
+  if (fuelPercent > 100) {
+    fuelPercent = 100;
+  }
 
   int scaleValue = 0;
   // TODO: check that final value is > 0 !!
@@ -542,7 +560,7 @@ void loop(void) {
   {
     purePressure = 0.0;
   }
-  // Uncomment it when new pressure sensor will be set in
+  // TODO: Uncomment it when new pressure sensor will be set in
   // if (purePressure < LOWER_PRESSURE)
   // {
   //   digitalWrite(LOW_OIL_PRESSURE_LED_PIN, HIGH);
