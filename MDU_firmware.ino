@@ -448,6 +448,7 @@ void loop(void) {
   fuelPercent = (int) (abs(34 - fuelPercent))*3;
   fuelPercent = fuelPercent + (int) fuelPercent/5.3;
   // TODO: test this line on motorcycle !
+  // TODO: more gliding algorythm for getting fuel level is needed, because 1000mkF is not enough!
   if (fuelPercent > 100) {
     fuelPercent = 100;
   }
