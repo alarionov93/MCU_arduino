@@ -437,21 +437,40 @@ void loop(void) {
 //  }
 
   // get data from analog sensors here
-  // int pressureSensorValue = analogRead(A0);
-  int pressureSensorValue = measureAnalogValue(A0, NULL);
-  int fuelSensorValue = measureAnalogValue(A1, NULL);
-  int voltageSensorValue = measureAnalogValue(A2, NULL);
+//  int fuelSensorValue = analogRead(A1);
+  int count = 40;
+  uint16_t fuelSensorValue = 0;
+  uint16_t pressureSensorValue = 0;
+  uint16_t voltageSensorValue = 0;
+  for (int i = 0; i < count; i++)
+  {
+    fuelSensorValue += analogRead(A1);
+  }
+  fuelSensorValue /= count;
+  
+  for (int i = 0; i < count; i++)
+  {
+    pressureSensorValue += analogRead(A0);
+  }
+  pressureSensorValue /= count;
+
+  for (int i = 0; i < count; i++)
+  {
+    voltageSensorValue += analogRead(A2);
+  }
+  voltageSensorValue /= count;
+
   // fuel sensor conversion
   Serial.println(fuelSensorValue); //max 360, min 80
   float fuelValue = fuelSensorValue * (100.0 / 1023.0);
   int fuelPercent = (int) fuelValue; //34-8 !
   fuelPercent = (int) (abs(34 - fuelPercent))*3;
-  fuelPercent = fuelPercent + (int) fuelPercent/5.3;
   // TODO: test this line on motorcycle !
+  fuelPercent = fuelPercent + (int) fuelPercent/8;
   // TODO: more gliding algorythm for getting fuel level is needed, because 1000mkF is not enough!
-  if (fuelPercent > 100) {
-    fuelPercent = 100;
-  }
+//  if (fuelPercent > 100) {
+//    fuelPercent = 100;
+//  }
 
   int scaleValue = 0;
   // TODO: check that final value is > 0 !!
