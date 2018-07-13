@@ -73,7 +73,6 @@ int addr_counter = 0; /* Necessary for determining exactly which (by count) sens
 (Because typically this code can get data only from 1 sensor on bus in every iteration of loop() function)
 1wire NUM_SENSORS constant SHOULD be defined properly in order to achieve quality of printing temperatures in different LCD places.*/
 
-
 // TODO: replace all vars of BYTE type to uint8_t and NEVER USE BYTE anymore!!!
 
 void pciSetup(byte pin)
@@ -99,6 +98,7 @@ int measureAnalogValue(int pin, int count) {
     for (int i = 0; i < count; i++)
     {
       value += analogRead(pin);
+      delay(10);
     }
     return (int) value/count;
 }
@@ -445,18 +445,21 @@ void loop(void) {
   for (int i = 0; i < count; i++)
   {
     fuelSensorValue += analogRead(A1);
+    delay(10);
   }
   fuelSensorValue /= count;
   
   for (int i = 0; i < count; i++)
   {
     pressureSensorValue += analogRead(A0);
+    delay(10);
   }
   pressureSensorValue /= count;
 
   for (int i = 0; i < count; i++)
   {
     voltageSensorValue += analogRead(A2);
+    delay(10);
   }
   voltageSensorValue /= count;
 
@@ -466,11 +469,17 @@ void loop(void) {
   int fuelPercent = (int) fuelValue; //34-8 !
   fuelPercent = (int) (abs(34 - fuelPercent))*3;
   // TODO: test this line on motorcycle !
-  fuelPercent = fuelPercent + (int) fuelPercent/8;
+  fuelPercent = fuelPercent + (int) fuelPercent/5.3;
   // TODO: more gliding algorythm for getting fuel level is needed, because 1000mkF is not enough!
-//  if (fuelPercent > 100) {
-//    fuelPercent = 100;
-//  }
+  if (fuelPercent > 100) 
+  {
+    set_error_code(8);
+  }
+
+  if (fuelPercent < 0)
+  {
+    set_error_code(8);
+  }
 
   int scaleValue = 0;
   // TODO: check that final value is > 0 !!
